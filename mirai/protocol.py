@@ -54,13 +54,14 @@ class MiraiProtocol:
 
     @protocol_log
     async def sendFriendMessage(self,
-            friend: T.Union[Friend, int],
-            message: T.Union[
-                MessageChain,
-                BaseMessageComponent,
-                T.List[BaseMessageComponent],
-                str
-            ]) -> BotMessage:
+        friend: T.Union[Friend, int],
+        message: T.Union[
+            MessageChain,
+            BaseMessageComponent,
+            T.List[BaseMessageComponent],
+            str
+        ]
+    ) -> BotMessage:
         return BotMessage.parse_obj(assertOperatorSuccess(
             await fetch.http_post(f"{self.baseurl}/sendFriendMessage", {
                 "sessionKey": self.session_key,
@@ -71,22 +72,23 @@ class MiraiProtocol:
     
     @protocol_log
     async def sendGroupMessage(self,
-            group: T.Union[Group, int],
-            message: T.Union[
-                MessageChain,
-                BaseMessageComponent,
-                T.List[BaseMessageComponent],
-                str
-            ],
-            quoteSource: T.Union[int, components.Source]=None) -> BotMessage:
+        group: T.Union[Group, int],
+        message: T.Union[
+            MessageChain,
+            BaseMessageComponent,
+            T.List[BaseMessageComponent],
+            str
+        ],
+        quoteSource: T.Union[int, components.Source]=None
+    ) -> BotMessage:
         return BotMessage.parse_obj(assertOperatorSuccess(
             await fetch.http_post(f"{self.baseurl}/sendGroupMessage", {
                 "sessionKey": self.session_key,
                 "target": self.handleTargetAsGroup(group),
                 "messageChain": await self.handleMessageAsGroup(message),
                 **({"quote": quoteSource.id \
-                        if isinstance(quoteSource, components.Source) else quoteSource}\
-                    if quoteSource else {})
+                    if isinstance(quoteSource, components.Source) else quoteSource}\
+                if quoteSource else {})
             }
         ), raise_exception=True, return_as_is=True))
 
@@ -139,6 +141,7 @@ class MiraiProtocol:
             "sessionKey": self.session_key,
             "type": type if isinstance(type, str) else type.value
         })
+
         uuid_string = re.search(regex, post_result)
         if uuid_string:
             return components.Image(imageId=UUID(getMatchedString(uuid_string)))
@@ -150,30 +153,37 @@ class MiraiProtocol:
                 "count": count
             }
         ), raise_exception=True, return_as_is=True)
-        for index in range(len(result)): # 因为重新生成一个开销太大, 所以就直接在原数据内进行遍历替换
-            if result[index]['type'] in MessageTypes: # 判断当前项是否为 Message
-                if 'messageChain' in result[index]: # 使用 custom_parse 方法处理消息链
+        # 因为重新生成一个开销太大, 所以就直接在原数据内进行遍历替换
+        for index in range(len(result)):
+            # 判断当前项是否为 Message
+            if result[index]['type'] in MessageTypes:
+                # 使用 custom_parse 方法处理消息链
+                if 'messageChain' in result[index]: 
                     result[index]['messageChain'] = MessageChain.custom_parse(result[index]['messageChain'])
+
                 result[index] = \
                     MessageTypes[result[index]['type']].parse_obj(result[index])
-            elif hasattr(ExternalEvents, result[index]['type']): # 判断当前项是否为 Event
+    
+            elif hasattr(ExternalEvents, result[index]['type']):
+                # 判断当前项是否为 Event
                 result[index] = \
                     ExternalEvents[result[index]['type']].value.parse_obj(result[index])
         return result
 
     @protocol_log
     async def messageFromId(self, sourceId: T.Union[components.Source, components.Quote, int]):
+        if isinstance(sourceId, (components.Source, components.Quote)):
+            sourceId = sourceId.id
+
         result = assertOperatorSuccess(await fetch.http_get(f"{self.baseurl}/messageFromId", {
             "sessionKey": self.session_key,
-            "id": sourceId.id if \
-                isinstance(sourceId,
-                    (components.Source, components.Quote)
-                ) else \
-                    sourceId
+            "id": sourceId
         }), raise_exception=True, return_as_is=True)
+
         if result['type'] in MessageTypes:
             if "messageChain" in result:
                 result['messageChain'] = MessageChain.custom_parse(result['messageChain'])
+
             return MessageTypes[result['type']].parse_obj(result)
         else:
             raise TypeError(f"unknown message, not found type.")
@@ -258,21 +268,15 @@ class MiraiProtocol:
         member: T.Union[Member, int],
         time: T.Union[timedelta, int]
     ):
+        if isinstance(time, timedelta):
+            time = int(time.total_seconds())
+        time = min(86400 * 30, max(60, time))
         return assertOperatorSuccess(
             await fetch.http_post(f"{self.baseurl}/mute", {
                 "sessionKey": self.session_key,
                 "target": self.handleTargetAsGroup(group),
                 "memberId": self.handleTargetAsMember(member),
-                "time": time if isinstance(time, int) else \
-                        int(time.total_seconds()) \
-                            if timedelta(days=30) >= time >= timedelta(minutes=1) \
-                        else \
-                            int(timedelta(days=30).total_seconds()) \
-                                if timedelta(days=30) >= time else \
-                            int(timedelta(minutes=1).total_seconds()) \
-                                if time <= timedelta(minutes=1) else \
-                            raiser(ValueError("invaild time."))
-                    if isinstance(time, timedelta) else raiser(ValueError("invaild time."))
+                "time": time
             }
         ), raise_exception=True)
 
@@ -314,24 +318,25 @@ class MiraiProtocol:
             T.List[BaseMessageComponent],
             str
         ]):
-        return json.loads(message.json()) \
-            if isinstance(message, MessageChain) else \
-                [json.loads(message.json())] \
-            if isinstance(message, BaseMessageComponent) else \
-                [
-                    json.loads(i.json()) \
-                        # 对Image特殊处理
-                        if type(i) != InternalImage else \
-                    {
+        if isinstance(message, MessageChain):
+            return json.loads(message.json())
+        elif isinstance(message, BaseMessageComponent):
+            return [json.loads(message.json())]
+        elif isinstance(message, (tuple, list)):
+            result = []
+            for i in message:
+                if type(i) != InternalImage:
+                    result.append(json.loads(i.json()))
+                else:
+                    result.append({
                         "type": "Image",
                         "imageId": (await self.handleInternalImageAsGroup(i)).asGroupImage()
-                    } \
-                    for i in message
-                ] \
-            if isinstance(message, (tuple, list)) else \
-                [json.loads(components.Plain(text=message).json())] \
-            if isinstance(message, str) else \
-                raiser(ValueError("invaild message(s)."))
+                    })
+            return result
+        elif isinstance(message, str):
+            return [json.loads(components.Plain(text=message).json())]
+        else:
+            raise raiser(ValueError("invaild message."))
 
     async def handleMessageAsFriend(
         self,
@@ -341,24 +346,25 @@ class MiraiProtocol:
             T.List[BaseMessageComponent],
             str
         ]):
-        return json.loads(message.json()) \
-            if isinstance(message, MessageChain) else \
-                [json.loads(message.json())] \
-            if isinstance(message, BaseMessageComponent) else \
-                [
-                    json.loads(i.json()) \
-                        # 对Image特殊处理
-                        if type(i) != InternalImage else \
-                    {
-                        "type": "Image", 
-                        "imageId": (await self.handleInternalImageAsFriend(i)).asFriendImage()
-                    } \
-                    for i in message if i
-                ] \
-            if isinstance(message, (tuple, list)) else \
-                [json.loads(components.Plain(text=message).json())] \
-            if isinstance(message, str) else \
-                raiser(ValueError("invaild message(s)."))
+        if isinstance(message, MessageChain):
+            return json.loads(message.json())
+        elif isinstance(message, BaseMessageComponent):
+            return [json.loads(message.json())]
+        elif isinstance(message, (tuple, list)):
+            result = []
+            for i in message:
+                if type(i) != InternalImage:
+                    result.append(json.loads(i.json()))
+                else:
+                    result.append({
+                        "type": "Image",
+                        "imageId": (await self.handleInternalImageAsFriend(i)).asGroupImage()
+                    })
+            return result
+        elif isinstance(message, str):
+            return [json.loads(components.Plain(text=message).json())]
+        else:
+            raise raiser(ValueError("invaild message."))
 
     def handleTargetAsGroup(self, target: T.Union[Group, int]):
         return target if isinstance(target, int) else \

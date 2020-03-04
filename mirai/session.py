@@ -175,7 +175,7 @@ class Session(MiraiProtocol):
         break
       
       # 开始处理
-      # 事件系统实际上就是"lambda", 指定事件名称(like. GroupMessage), 然后lambda判断.
+
       # @event.receiver("GroupMessage", lambda info: info.......)
       for message_index in range(len(result)):
         item = result[message_index]
@@ -459,32 +459,29 @@ class Session(MiraiProtocol):
     self.checkEventBodyAnnotations()
     SessionLogger.info("session ready.")
     while self.shared_lock:
-      await asyncio.sleep(0.01)
+      await asyncio.sleep(0.1)
     else:
       return
 
   def exception_handler(self, exception_class=None, addon_condition=None):
-    return self.receiver(
-      "UnexpectedException", 
-      lambda context: \
-          True \
+    return self.receiver("UnexpectedException",
+      lambda context: True \
         if not exception_class else \
           type(context.error) == exception_class and (
             addon_condition(context) \
-              if addon_condition else \
-            True
+              if addon_condition else True
           )
     )
 
   def gen_event_anno(self):
-    IReturn = {}
+    result = {}
     for event_name, event_class in ExternalEvents.__members__.items():
       def warpper(name, event_context):
         if name != event_context.name:
           raise ValueError("cannot look up a non-listened event.")
         return event_context.body
-      IReturn[event_class.value] = partial(warpper, copy.copy(event_name))
-    return IReturn
+      result[event_class.value] = partial(warpper, copy.copy(event_name))
+    return result
 
   def get_annotations_mapping(self):
     from .event.message import MessageChain
