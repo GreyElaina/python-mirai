@@ -248,7 +248,7 @@ class MiraiProtocol:
             await fetch.http_post(f"{self.baseurl}/groupConfig", {
                 "sessionKey": self.session_key,
                 "target": self.handleTargetAsGroup(group),
-                "config": json.loads(json.loads(config.json()))
+                "config": json.loads(config.json())
             }
         ), raise_exception=True)
 
