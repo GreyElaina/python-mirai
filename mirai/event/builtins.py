@@ -1,12 +1,11 @@
 from . import InternalEvent
-
-from mirai.session import Session
 from pydantic import BaseModel
+from typing import Any
 
 class UnexpectedException(BaseModel):
     error: Exception
     event: InternalEvent
-    session: Session
+    session: Any
 
     class Config:
         arbitrary_types_allowed = True

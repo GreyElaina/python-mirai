@@ -79,3 +79,5 @@ import mirai.protocol
 from mirai.session import (
     Session
 )
+
+from mirai.application import Mirai

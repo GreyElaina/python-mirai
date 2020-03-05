@@ -358,7 +358,7 @@ class MiraiProtocol:
                 else:
                     result.append({
                         "type": "Image",
-                        "imageId": (await self.handleInternalImageAsFriend(i)).asGroupImage()
+                        "imageId": (await self.handleInternalImageAsFriend(i)).asFriendImage()
                     })
             return result
         elif isinstance(message, str):
