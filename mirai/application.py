@@ -404,15 +404,33 @@ class Mirai(MiraiProtocol):
           else:
             self.checkDependencies(depend)
 
-  def exception_handler(self, exception_class=None, addon_condition=None):
-    return self.receiver("UnexpectedException",
-      lambda context: True \
-        if not exception_class else \
-          type(context.error) == exception_class and (
-            addon_condition(context) \
-              if addon_condition else True
-          )
-    )
+  def exception_handler(self, exception_class=None):
+    def receiver_warpper(
+      func: T.Callable[[T.Union[FriendMessage, GroupMessage], "Session"], T.Awaitable[T.Any]]
+    ):
+      event_name = "UnexpectedException"
+
+      if not inspect.iscoroutinefunction(func):
+        raise TypeError("event body must be a coroutine function.")
+    
+      async def func_warpper_inout(context: UnexpectedException, *args, **kwargs):
+        if type(context.error) == exception_class:
+          return await func(context, *args, **kwargs)
+
+      func_warpper_inout.__annotations__ = func.__annotations__
+
+      protocol = {
+        "func": func_warpper_inout,
+        "dependencies": [],
+        "middlewares": []
+      }
+      
+      if event_name not in self.event:
+        self.event[event_name] = [protocol]
+      else:
+        self.event[event_name].append(protocol)
+      return func
+    return receiver_warpper
 
   def gen_event_anno(self):
     result = {}
