@@ -55,8 +55,8 @@ class At(BaseMessageComponent):
     target: int
     display: T.Optional[str] = None
 
-    def __init__(self, target):
-        super().__init__(target=target)
+    def __init__(self, target, display=None):
+        super().__init__(target=target, display=display)
 
     def toString(self):
         return f"[At::target={self.target}]"

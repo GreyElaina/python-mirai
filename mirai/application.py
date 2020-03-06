@@ -454,5 +454,7 @@ class Mirai(MiraiProtocol):
     try:
       loop.run_forever()
     except KeyboardInterrupt:
+      SessionLogger.info("catched Ctrl-C, exiting..")
+    finally:
       loop.run_until_complete(self.release())
       loop.run_until_complete(session.close())

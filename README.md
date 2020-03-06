@@ -5,7 +5,6 @@
 
 ### 开始使用
 #### 从 Pypi 安装
-~~绝对不是因为 `mirai` 被抢注了的原因才使用的 `kuriyama` (栗山)~~
 ``` bash
 pip install kuriyama
 ```
