@@ -5,7 +5,7 @@ from pathlib import Path
 from uuid import UUID
 import json
 
-from mirai.event.message.types import FriendMessage, GroupMessage, BotMessage, MessageTypes
+from mirai.event.message.models import FriendMessage, GroupMessage, BotMessage, MessageTypes
 
 from mirai.event import ExternalEvent
 from mirai.event.external.enums import ExternalEvents

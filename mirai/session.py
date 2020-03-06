@@ -17,7 +17,7 @@ from .depend import Depend
 from .event import ExternalEvent, ExternalEventTypes, InternalEvent
 from .event.external.enums import ExternalEvents
 from .event.message import components
-from .event.message.types import (
+from .event.message.models import (
     FriendMessage, GroupMessage, MessageItemType, MessageTypes)
 from .friend import Friend
 from .group import Group, Member

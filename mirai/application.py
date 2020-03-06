@@ -13,7 +13,7 @@ from mirai.depend import Depend
 from mirai.event import ExternalEvent, ExternalEventTypes, InternalEvent
 from mirai.event.external.enums import ExternalEvents
 from mirai.event.message import components
-from mirai.event.message.types import (
+from mirai.event.message.models import (
     FriendMessage, GroupMessage, MessageItemType, MessageTypes)
 from mirai.friend import Friend
 from mirai.group import Group, Member
