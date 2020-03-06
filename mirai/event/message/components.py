@@ -47,13 +47,10 @@ class Quote(BaseMessageComponent):
     type: MessageComponentTypes = "Quote"
     id: int
 
-    def __init__(self, id):
-        super().__init__(id=id)
-
     def toString(self):
         return ""
 
-class At(GenericModel, BaseMessageComponent):
+class At(BaseMessageComponent):
     type: MessageComponentTypes = "At"
     target: int
     display: T.Optional[str] = None
@@ -73,6 +70,9 @@ class AtAll(BaseMessageComponent):
 class Face(BaseMessageComponent):
     type: MessageComponentTypes = "Face"
     faceId: int
+
+    def __init__(self, faceId):
+        super().__init__(faceId=faceId)
 
     def toString(self):
         return f"[Face::key={findKey(QQFaces, self.faceId)}]"
