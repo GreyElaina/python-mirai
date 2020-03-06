@@ -151,6 +151,8 @@ class Mirai(MiraiProtocol):
     for i in signature_mapping.values():
       if not isinstance(i, Depend):
         raise TypeError("you must use a Depend to patch the default value.")
+      else:
+        return signature_mapping
 
   async def signature_checkout(self, func, event_context, queue):
     signature_mapping = self.signature_getter(func)
@@ -352,6 +354,46 @@ class Mirai(MiraiProtocol):
             except ValueError:
               raise
 
+  def getFuncRegisteredEvents(self, callable_target: T.Callable):
+    event_bodys: T.Dict[T.Callable, T.List[str]] = {}
+    for event_name in self.event:
+      event_body_list = sum([list(i.values()) for i in self.event[event_name]], [])
+      for i in event_body_list:
+        if not event_bodys.get(i['func']):
+          event_bodys[i['func']] = [event_name]
+        else:
+          event_bodys[i['func']].append(event_name)
+    return event_bodys.get(callable_target)
+
+  def checkFuncAnnotations(self, callable_target: T.Callable):
+    restraint_mapping = self.getRestraintMapping()
+    whileList = self.signature_getter(callable_target)
+    registered_events = self.getFuncRegisteredEvents(callable_target)
+    for param_name, func_item in callable_target.__annotations__.items():
+      if param_name not in whileList:
+        if not registered_events:
+          raise ValueError(f"error in annotations checker: {callable_target} is invaild.")
+        for event_name in registered_events:
+          try:
+            if not (restraint_mapping[func_item](
+                type("checkMockType", (object,), {
+                  "name": event_name
+                })
+              )
+            ):
+              raise ValueError(f"error in annotations checker: {callable_target}.{func_item}: {event_name}")
+          except KeyError:
+            raise ValueError(f"error in annotations checker: {callable_target}.{func_item} is invaild.")
+          except ValueError:
+            raise
+
+  def checkDependencies(self, depend_target: Depend):
+    signature_mapping = self.signature_checker(depend_target.func)
+    for k, v in signature_mapping.items():
+      if type(v) == Depend:
+        self.checkEventBodyAnnotations(v)
+        self.checkDependencies(v)
+
   def checkEventDependencies(self):
     for event_name, event_bodys in self.event.items():
       for i in event_bodys:
@@ -359,6 +401,8 @@ class Mirai(MiraiProtocol):
         for depend in value['dependencies']:
           if type(depend) != Depend:
             raise TypeError(f"error in dependencies checker: {value['func']}: {event_name}")
+          else:
+            self.checkDependencies(depend)
 
   def exception_handler(self, exception_class=None, addon_condition=None):
     return self.receiver("UnexpectedException",
@@ -442,6 +486,9 @@ class Mirai(MiraiProtocol):
     self.run_forever_target.append(func)
 
   def run(self, loop=None):
+    self.checkEventBodyAnnotations()
+    self.checkEventDependencies()
+
     loop = loop or asyncio.get_event_loop()
     queue = asyncio.Queue(loop=loop)
     exit_signal = False
