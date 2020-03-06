@@ -28,6 +28,7 @@ class Mirai(MiraiProtocol):
   event: Dict[
     str, List[Callable[[Any], Awaitable]]
   ] = {}
+  run_forever_target: List[Callable] = []
 
   def __init__(self, 
     url: T.Optional[str] = None,
@@ -437,6 +438,9 @@ class Mirai(MiraiProtocol):
   def registeredEventNames(self):
     return [self.getEventCurrentName(i) for i in self.event.keys()]
 
+  def addForeverTarget(self, func: Callable[["Mirai"], Any]):
+    self.run_forever_target.append(func)
+
   def run(self, loop=None):
     loop = loop or asyncio.get_event_loop()
     queue = asyncio.Queue(loop=loop)
@@ -444,4 +448,6 @@ class Mirai(MiraiProtocol):
     loop.run_until_complete(self.enable_session())
     loop.create_task(self.message_polling(lambda: exit_signal, queue))
     loop.create_task(self.event_runner(lambda: exit_signal, queue))
+    for i in self.run_forever_target:
+      loop.create_task(i(self))
     loop.run_forever()
