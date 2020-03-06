@@ -9,7 +9,6 @@ from pydantic.generics import GenericModel
 from mirai.network import fetch, session
 from mirai.misc import ImageType
 from io import BytesIO
-from PIL import Image as PILImage
 from pathlib import Path
 from mirai.image import InternalImage
 import datetime
@@ -26,11 +25,12 @@ __all__ = [
     "Quote"
 ]
 
-TempType = T.TypeVar("TempType")
-
 class Plain(BaseMessageComponent):
     type: MessageComponentTypes = "Plain"
     text: str
+
+    def __init__(self, text):
+        super().__init__(text=text)
 
     def toString(self):
         return self.text
@@ -47,13 +47,19 @@ class Quote(BaseMessageComponent):
     type: MessageComponentTypes = "Quote"
     id: int
 
+    def __init__(self, id):
+        super().__init__(id=id)
+
     def toString(self):
         return ""
 
 class At(GenericModel, BaseMessageComponent):
     type: MessageComponentTypes = "At"
     target: int
-    display: str
+    display: T.Optional[str] = None
+
+    def __init__(self, target):
+        super().__init__(target=target)
 
     def toString(self):
         return f"[At::target={self.target}]"
@@ -75,6 +81,9 @@ class Image(BaseMessageComponent):
     type: MessageComponentTypes = "Image"
     imageId: UUID
     url: T.Optional[HttpUrl] = None
+
+    def __init__(self, imageId):
+        super().__init__(imageId=imageId)
 
     @validator("imageId", always=True, pre=True)
     @classmethod
@@ -98,10 +107,6 @@ class Image(BaseMessageComponent):
 
     def asFriendImage(self) -> str:
         return f"/{str(self.imageId)}"
-
-    async def getPillowImage(self) -> PILImage.Image:
-        async with session.get(self.url) as response:
-            return PILImage.open(BytesIO(await response.read()))
 
     @staticmethod
     def fromFileSystem(path: T.Union[Path, str]) -> InternalImage:

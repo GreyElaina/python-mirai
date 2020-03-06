@@ -16,7 +16,6 @@ setup(
     install_requires=[
         "aiohttp",
         "pydantic",
-        "Pillow",
         "Logbook",
     ],
     long_description=long_description,

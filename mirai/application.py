@@ -450,4 +450,9 @@ class Mirai(MiraiProtocol):
     loop.create_task(self.event_runner(lambda: exit_signal, queue))
     for i in self.run_forever_target:
       loop.create_task(i(self))
-    loop.run_forever()
+
+    try:
+      loop.run_forever()
+    except KeyboardInterrupt:
+      loop.run_until_complete(self.release())
+      loop.run_until_complete(session.close())
