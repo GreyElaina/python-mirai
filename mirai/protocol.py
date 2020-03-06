@@ -136,15 +136,11 @@ class MiraiProtocol:
         if not imagePath.exists():
             raise FileNotFoundError("invaild image path.")
 
-        regex = ImageRegex[type if isinstance(type, str) else type.value]
-        post_result = await fetch.upload(f"{self.baseurl}/uploadImage", imagePath, {
+        post_result = json.loads(printer(await fetch.upload(f"{self.baseurl}/uploadImage", imagePath, {
             "sessionKey": self.session_key,
             "type": type if isinstance(type, str) else type.value
-        })
-
-        uuid_string = re.search(regex, post_result)
-        if uuid_string:
-            return components.Image(imageId=UUID(getMatchedString(uuid_string)))
+        })))
+        return components.Image(**post_result)
 
     async def fetchMessage(self, count: int) -> T.List[T.Union[FriendMessage, GroupMessage, ExternalEvent]]:
         result = assertOperatorSuccess(

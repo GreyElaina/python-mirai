@@ -29,8 +29,8 @@ class Plain(BaseMessageComponent):
     type: MessageComponentTypes = "Plain"
     text: str
 
-    def __init__(self, text):
-        super().__init__(text=text)
+    def __init__(self, text, type="Plain"):
+        super().__init__(text=text, type=type)
 
     def toString(self):
         return self.text
@@ -43,9 +43,14 @@ class Source(BaseMessageComponent):
     def toString(self):
         return ""
 
+from .chain import MessageChain
+
 class Quote(BaseMessageComponent):
     type: MessageComponentTypes = "Quote"
     id: int
+    groupId: int
+    senderId: int
+    origin: MessageChain
 
     def toString(self):
         return ""
@@ -55,8 +60,8 @@ class At(BaseMessageComponent):
     target: int
     display: T.Optional[str] = None
 
-    def __init__(self, target, display=None):
-        super().__init__(target=target, display=display)
+    def __init__(self, target, display=None, type="At"):
+        super().__init__(target=target, display=display, type=type)
 
     def toString(self):
         return f"[At::target={self.target}]"
@@ -70,20 +75,21 @@ class AtAll(BaseMessageComponent):
 class Face(BaseMessageComponent):
     type: MessageComponentTypes = "Face"
     faceId: int
+    name: str
 
-    def __init__(self, faceId):
-        super().__init__(faceId=faceId)
+    def __init__(self, faceId, type="Face"):
+        super().__init__(faceId=faceId, type=type)
 
     def toString(self):
-        return f"[Face::key={findKey(QQFaces, self.faceId)}]"
+        return f"[Face::name={self.name}]"
 
 class Image(BaseMessageComponent):
     type: MessageComponentTypes = "Image"
     imageId: UUID
     url: T.Optional[HttpUrl] = None
 
-    def __init__(self, imageId):
-        super().__init__(imageId=imageId)
+    def __init__(self, imageId, url=None, type="Image"):
+        super().__init__(imageId=imageId, url=url, type=type)
 
     @validator("imageId", always=True, pre=True)
     @classmethod

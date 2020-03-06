@@ -25,7 +25,7 @@ class MessageChain(BaseModel):
         for i in value:
             if not isinstance(i, dict):
                 raise TypeError("invaild value")
-        return cls(__root__=[ComponentTypes.__members__[m['type']].value(**m) for m in value])
+        return cls(__root__=[ComponentTypes.__members__[m['type']].value.parse_obj(m) for m in value])
 
     def __iter__(self):
         yield from self.__root__

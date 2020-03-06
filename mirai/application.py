@@ -327,7 +327,7 @@ class Mirai(MiraiProtocol):
   def checkEventBodyAnnotations(self):
     event_bodys: T.Dict[T.Callable, T.List[str]] = {}
     for event_name in self.event:
-      event_body_list = sum([list(i.values()) for i in self.event[event_name]], [])
+      event_body_list = self.event[event_name]
       for i in event_body_list:
         if not event_bodys.get(i['func']):
           event_bodys[i['func']] = [event_name]
@@ -397,10 +397,9 @@ class Mirai(MiraiProtocol):
   def checkEventDependencies(self):
     for event_name, event_bodys in self.event.items():
       for i in event_bodys:
-        value = list(i.values())[0]
-        for depend in value['dependencies']:
+        for depend in i['dependencies']:
           if type(depend) != Depend:
-            raise TypeError(f"error in dependencies checker: {value['func']}: {event_name}")
+            raise TypeError(f"error in dependencies checker: {i['func']}: {event_name}")
           else:
             self.checkDependencies(depend)
 
