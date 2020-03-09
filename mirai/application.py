@@ -67,7 +67,7 @@ class Mirai(MiraiProtocol):
         raise ValueError("invaild arguments")
 
   async def enable_session(self) -> "Session":
-    auth_response = await super().auth()
+    auth_response = await self.auth()
     if all([
       "code" in auth_response and auth_response['code'] == 0,
       "session" in auth_response and auth_response['session']
@@ -77,7 +77,7 @@ class Mirai(MiraiProtocol):
       else:
         self.session_key = auth_response['session']
 
-      await super().verify()
+      await self.verify()
     else:
       if "code" in auth_response and auth_response['code'] == 1:
         raise ValueError("invaild authKey")

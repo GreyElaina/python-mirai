@@ -19,4 +19,5 @@ async def forever_target(app: Mirai):
     pass
 
 if __name__ == "__main__":
+    print(app.baseurl)
     app.run()

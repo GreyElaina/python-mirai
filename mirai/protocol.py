@@ -16,7 +16,7 @@ from mirai.misc import ImageRegex, ImageType, assertOperatorSuccess, raiser, pri
 from mirai.network import fetch
 from mirai.event.message.base import BaseMessageComponent
 from mirai.event.message import components
-from mirai.misc import protocol_log
+from mirai.misc import protocol_log, edge_case_handler
 from mirai.image import InternalImage
 import threading
 
@@ -27,6 +27,7 @@ class MiraiProtocol:
     auth_key: str
 
     @protocol_log
+    @edge_case_handler
     async def auth(self):
         return assertOperatorSuccess(
             await fetch.http_post(f"{self.baseurl}/auth", {
@@ -35,6 +36,7 @@ class MiraiProtocol:
         ), raise_exception=True, return_as_is=True)
 
     @protocol_log
+    @edge_case_handler
     async def verify(self):
         return assertOperatorSuccess(
             await fetch.http_post(f"{self.baseurl}/verify", {
@@ -44,6 +46,7 @@ class MiraiProtocol:
         ), raise_exception=True, return_as_is=True)
 
     @protocol_log
+    @edge_case_handler
     async def release(self):
         return assertOperatorSuccess(
             await fetch.http_post(f"{self.baseurl}/release", {
@@ -53,6 +56,7 @@ class MiraiProtocol:
         ), raise_exception=True)
 
     @protocol_log
+    @edge_case_handler
     async def sendFriendMessage(self,
         friend: T.Union[Friend, int],
         message: T.Union[
@@ -71,6 +75,7 @@ class MiraiProtocol:
         ), raise_exception=True, return_as_is=True))
     
     @protocol_log
+    @edge_case_handler
     async def sendGroupMessage(self,
         group: T.Union[Group, int],
         message: T.Union[
@@ -93,6 +98,7 @@ class MiraiProtocol:
         ), raise_exception=True, return_as_is=True))
 
     @protocol_log
+    @edge_case_handler
     async def revokeMessage(self, source: T.Union[components.Source, int]):
         return assertOperatorSuccess(await fetch.http_post(f"{self.baseurl}/recall", {
             "sessionKey": self.session_key,
@@ -100,6 +106,7 @@ class MiraiProtocol:
         }), raise_exception=True)
 
     @protocol_log
+    @edge_case_handler
     async def groupList(self) -> T.List[Group]:
         return [Group.parse_obj(group_info) \
             for group_info in await fetch.http_get(f"{self.baseurl}/groupList", {
@@ -108,6 +115,7 @@ class MiraiProtocol:
         ]
 
     @protocol_log
+    @edge_case_handler
     async def friendList(self) -> T.List[Friend]:
         return [Friend.parse_obj(friend_info) \
             for friend_info in await fetch.http_get(f"{self.baseurl}/friendList", {
@@ -116,6 +124,7 @@ class MiraiProtocol:
         ]
 
     @protocol_log
+    @edge_case_handler
     async def memberList(self, target: int) -> T.List[Member]:
         return [Member.parse_obj(member_info) \
             for member_info in await fetch.http_get(f"{self.baseurl}/memberList", {
@@ -125,10 +134,12 @@ class MiraiProtocol:
         ]
 
     @protocol_log
+    @edge_case_handler
     async def groupMemberNumber(self, target: int) -> int:
         return len(await self.memberList(target)) + 1
 
     @protocol_log
+    @edge_case_handler
     async def uploadImage(self, type: T.Union[str, ImageType], imagePath: T.Union[Path, str]):
         if isinstance(imagePath, str):
             imagePath = Path(imagePath)
@@ -142,6 +153,7 @@ class MiraiProtocol:
         })))
         return components.Image(**post_result)
 
+    @edge_case_handler
     async def fetchMessage(self, count: int) -> T.List[T.Union[FriendMessage, GroupMessage, ExternalEvent]]:
         result = assertOperatorSuccess(
             await fetch.http_get(f"{self.baseurl}/fetchMessage", {
@@ -167,6 +179,7 @@ class MiraiProtocol:
         return result
 
     @protocol_log
+    @edge_case_handler
     async def messageFromId(self, sourceId: T.Union[components.Source, components.Quote, int]):
         if isinstance(sourceId, (components.Source, components.Quote)):
             sourceId = sourceId.id
@@ -185,6 +198,7 @@ class MiraiProtocol:
             raise TypeError(f"unknown message, not found type.")
 
     @protocol_log
+    @edge_case_handler
     async def muteAll(self, group: T.Union[Group, int]) -> bool:
         return assertOperatorSuccess(
             await fetch.http_post(f"{self.baseurl}/muteAll", {
@@ -192,8 +206,9 @@ class MiraiProtocol:
                 "target": self.handleTargetAsGroup(group)
             }
         ), raise_exception=True)
-        
+
     @protocol_log
+    @edge_case_handler
     async def unmuteAll(self, group: T.Union[Group, int]) -> bool:
         return assertOperatorSuccess(
             await fetch.http_post(f"{self.baseurl}/unmuteAll", {
@@ -203,6 +218,7 @@ class MiraiProtocol:
         ), raise_exception=True)
     
     @protocol_log
+    @edge_case_handler
     async def memberInfo(self,
         group: T.Union[Group, int],
         member: T.Union[Member, int]
@@ -216,12 +232,14 @@ class MiraiProtocol:
         ), raise_exception=True, return_as_is=True))
 
     @protocol_log
+    @edge_case_handler
     async def botMemberInfo(self,
         group: T.Union[Group, int]
     ):
         return await self.memberInfo(group, self.qq)
 
     @protocol_log
+    @edge_case_handler
     async def changeMemberInfo(self,
         group: T.Union[Group, int],
         member: T.Union[Member, int],
@@ -237,6 +255,7 @@ class MiraiProtocol:
         ), raise_exception=True)
 
     @protocol_log
+    @edge_case_handler
     async def groupConfig(self, group: T.Union[Group, int]) -> GroupSetting:
         return GroupSetting.parse_obj(
             await fetch.http_get(f"{self.baseurl}/groupConfig", {
@@ -246,6 +265,7 @@ class MiraiProtocol:
         )
 
     @protocol_log
+    @edge_case_handler
     async def changeGroupConfig(self,
         group: T.Union[Group, int],
         config: GroupSetting
@@ -259,6 +279,7 @@ class MiraiProtocol:
         ), raise_exception=True)
 
     @protocol_log
+    @edge_case_handler
     async def mute(self,
         group: T.Union[Group, int],
         member: T.Union[Member, int],
@@ -277,6 +298,7 @@ class MiraiProtocol:
         ), raise_exception=True)
 
     @protocol_log
+    @edge_case_handler
     async def unmute(self,
         group: T.Union[Group, int],
         member: T.Union[Member, int]
@@ -290,6 +312,7 @@ class MiraiProtocol:
         ), raise_exception=True)
 
     @protocol_log
+    @edge_case_handler
     async def kick(self,
         group: T.Union[Group, int],
         member: T.Union[Member, int],
