@@ -502,7 +502,7 @@ class Mirai(MiraiProtocol):
   def addForeverTarget(self, func: Callable[["Mirai"], Any]):
     self.run_forever_target.append(func)
 
-  def run(self, loop=None):
+  def run(self, loop=None, no_polling=False, no_forever=False):
     self.checkEventBodyAnnotations()
     self.checkEventDependencies()
 
@@ -510,10 +510,13 @@ class Mirai(MiraiProtocol):
     queue = asyncio.Queue(loop=loop)
     exit_signal = False
     loop.run_until_complete(self.enable_session())
-    loop.create_task(self.message_polling(lambda: exit_signal, queue))
-    loop.create_task(self.event_runner(lambda: exit_signal, queue))
-    for i in self.run_forever_target:
-      loop.create_task(i(self))
+    if not no_polling:
+      loop.create_task(self.message_polling(lambda: exit_signal, queue))
+      loop.create_task(self.event_runner(lambda: exit_signal, queue))
+    
+    if not no_forever:
+      for i in self.run_forever_target:
+        loop.create_task(i(self))
 
     try:
       loop.run_forever()
