@@ -14,6 +14,9 @@ class MessageComponentTypes(Enum):
     AtAll = "AtAll"
     Image = "Image"
     Quote = "Quote"
+    Xml = "Xml"
+    Json = "Json"
+    App = "App"
     Unknown = "Unknown"
 
 class BaseMessageComponent(BaseModel):

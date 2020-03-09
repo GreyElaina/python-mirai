@@ -22,6 +22,7 @@ from mirai.logger import Session as SessionLogger
 from mirai.network import fetch, session
 from mirai.protocol import MiraiProtocol
 from mirai.event.message import MessageChain
+import aiohttp
 import traceback
 
 class Mirai(MiraiProtocol):
@@ -29,6 +30,7 @@ class Mirai(MiraiProtocol):
     str, List[Callable[[Any], Awaitable]]
   ] = {}
   run_forever_target: List[Callable] = []
+  useWebsocket = False
 
   def __init__(self, 
     url: T.Optional[str] = None,
@@ -36,19 +38,27 @@ class Mirai(MiraiProtocol):
     host: T.Optional[str] = None,
     port: T.Optional[int] = None,
     authKey: T.Optional[str] = None,
-    qq: T.Optional[int] = None
+    qq: T.Optional[int] = None,
+
+    websocket: bool = False
   ):
+    self.useWebsocket = websocket
     if url:
       urlinfo = parse.urlparse(url)
       if urlinfo:
         query_info = parse.parse_qs(urlinfo.query)
         if all([
           urlinfo.scheme == "mirai",
-          urlinfo.path == "/",
+          urlinfo.path in ["/", "/ws"],
 
           "authKey" in query_info and query_info["authKey"],
           "qq" in query_info and query_info["qq"]
         ]):
+          if urlinfo.path == "/ws":
+            self.useWebsocket = True
+          else:
+            self.useWebsocket = False
+
           authKey = query_info["authKey"][0]
 
           self.baseurl = f"http://{urlinfo.netloc}"
@@ -280,7 +290,33 @@ class Mirai(MiraiProtocol):
             body=item
           )
         )
-  
+
+  async def ws_event_receiver(self, exit_signal, queue):
+    async with aiohttp.ClientSession() as session:
+      async with session.ws_connect(
+        f"{self.baseurl}/all?sessionKey={self.session_key}"
+      ) as ws_connection:
+        while not exit_signal():
+          print("?")
+          received_data = await ws_connection.receive_json()
+          print(received_data)
+          if received_data:
+            if received_data['type'] in MessageTypes:
+                if 'messageChain' in received_data: 
+                    received_data['messageChain'] = MessageChain.parse_obj(received_data['messageChain'])
+
+                received_data = \
+                    MessageTypes[received_data['type']].parse_obj(received_data)
+    
+            elif hasattr(ExternalEvents, received_data['type']):
+                # 判断当前项是否为 Event
+                received_data = \
+                    ExternalEvents[received_data['type']].value.parse_obj(received_data)
+          await queue.put(InternalEvent(
+            name=self.getEventCurrentName(type(received_data)),
+            body=received_data
+          ))
+
   async def event_runner(self, exit_signal_status, queue: asyncio.Queue):
     while not exit_signal_status():
       event_context: InternalEvent
@@ -511,7 +547,11 @@ class Mirai(MiraiProtocol):
     exit_signal = False
     loop.run_until_complete(self.enable_session())
     if not no_polling:
-      loop.create_task(self.message_polling(lambda: exit_signal, queue))
+      if not self.useWebsocket:
+        loop.create_task(self.message_polling(lambda: exit_signal, queue))
+      else:
+        SessionLogger.warning("you are using WebSocket, it's a experimental method.")
+        loop.create_task(self.ws_event_receiver(lambda: exit_signal, queue))
       loop.create_task(self.event_runner(lambda: exit_signal, queue))
     
     if not no_forever:

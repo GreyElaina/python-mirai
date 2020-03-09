@@ -118,6 +118,27 @@ class Image(BaseMessageComponent):
     def fromFileSystem(path: T.Union[Path, str]) -> InternalImage:
         return InternalImage(path)
 
+class Xml(BaseMessageComponent):
+    type: MessageComponentTypes = "Xml"
+    XML: str
+
+    def __init__(self, xml):
+        super().__init__(XML=xml)
+
+class Json(BaseMessageComponent):
+    type: MessageComponentTypes = "Json"
+    Json: dict = Field(..., alias="json")
+
+    def __init__(self, json: dict):
+        super().__init__(Json=json)
+
+class App(BaseMessageComponent):
+    type: MessageComponentTypes = "App"
+    content: str
+
+    def __init__(self, content: str):
+        super().__init__(content=content)
+
 class Unknown(BaseMessageComponent):
     type: MessageComponentTypes = "Unknown"
     text: str
@@ -133,6 +154,9 @@ class ComponentTypes(Enum):
     Face = Face
     Image = Image
     Quote = Quote
+    Xml = Xml
+    Json = Json
+    App = App
     Unknown = Unknown
 
 MessageComponents = {
@@ -143,5 +167,8 @@ MessageComponents = {
     "Image": Image,
     "Source": Source,
     "Quote": Quote,
+    "Xml": Xml,
+    "Json": Json,
+    "App": App,
     "Unknown": Unknown
 }

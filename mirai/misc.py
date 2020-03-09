@@ -158,4 +158,5 @@ def edge_case_handler(func):
         exit(-1)
       except:
         raise
+  warpper.__name__ = func.__name__
   return warpper

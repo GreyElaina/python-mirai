@@ -20,12 +20,14 @@ class MessageChain(BaseModel):
         return "".join([i.toString() for i in self.__root__])
 
     @classmethod
-    def custom_parse(cls, value: T.List[T.Any]):
+    def parse_obj(cls, obj):
         from .components import ComponentTypes
-        for i in value:
+        for i in obj:
             if not isinstance(i, dict):
                 raise TypeError("invaild value")
-        return cls(__root__=[ComponentTypes.__members__[m['type']].value.parse_obj(m) for m in value])
+        return cls(__root__=\
+            [ComponentTypes.__members__[m['type']].value.parse_obj(m) for m in obj]
+        )
 
     def __iter__(self):
         yield from self.__root__

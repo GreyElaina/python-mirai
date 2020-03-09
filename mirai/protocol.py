@@ -55,6 +55,31 @@ class MiraiProtocol:
             }
         ), raise_exception=True)
 
+    @edge_case_handler
+    async def getConfig(self):
+        return assertOperatorSuccess(
+            await fetch.http_get(f"{self.baseurl}/config", {
+                "sessionKey": self.session_key
+            }
+        ), raise_exception=True, return_as_is=True)
+
+    @edge_case_handler
+    async def setConfig(self,
+        cacheSize=None,
+        enableWebsocket=None
+    ):
+        return assertOperatorSuccess(
+            await fetch.http_get(f"{self.baseurl}/config", {
+                "sessionKey": self.session_key,
+                **({
+                    "cacheSize": cacheSize
+                } if cacheSize else {}),
+                **({
+                    "enableWebsocket": enableWebsocket
+                } if enableWebsocket else {})
+            }
+        ), raise_exception=True, return_as_is=True)
+
     @protocol_log
     @edge_case_handler
     async def sendFriendMessage(self,
@@ -167,13 +192,13 @@ class MiraiProtocol:
             if result[index]['type'] in MessageTypes:
                 # 使用 custom_parse 方法处理消息链
                 if 'messageChain' in result[index]: 
-                    result[index]['messageChain'] = MessageChain.custom_parse(result[index]['messageChain'])
+                    result[index]['messageChain'] = MessageChain.parse_obj(result[index]['messageChain'])
 
                 result[index] = \
                     MessageTypes[result[index]['type']].parse_obj(result[index])
     
             elif hasattr(ExternalEvents, result[index]['type']):
-                # 判断当前项是否为 Event
+                # 判断当前项为 Event
                 result[index] = \
                     ExternalEvents[result[index]['type']].value.parse_obj(result[index])
         return result
