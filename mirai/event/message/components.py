@@ -75,9 +75,9 @@ class AtAll(BaseMessageComponent):
 class Face(BaseMessageComponent):
     type: MessageComponentTypes = "Face"
     faceId: int
-    name: str
+    name: T.Optional[str]
 
-    def __init__(self, faceId, name, type="Face"):
+    def __init__(self, faceId, name=None, type="Face"):
         super().__init__(faceId=faceId, name=name, type=type)
 
     def toString(self):
