@@ -77,8 +77,8 @@ class Face(BaseMessageComponent):
     faceId: int
     name: str
 
-    def __init__(self, faceId, type="Face"):
-        super().__init__(faceId=faceId, type=type)
+    def __init__(self, faceId, name, type="Face"):
+        super().__init__(faceId=faceId, name=name, type=type)
 
     def toString(self):
         return f"[Face::name={self.name}]"
