@@ -56,7 +56,7 @@ class MiraiProtocol:
         ), raise_exception=True)
 
     @edge_case_handler
-    async def getConfig(self):
+    async def getConfig(self) -> dict:
         return assertOperatorSuccess(
             await fetch.http_get(f"{self.baseurl}/config", {
                 "sessionKey": self.session_key
@@ -172,10 +172,10 @@ class MiraiProtocol:
         if not imagePath.exists():
             raise FileNotFoundError("invaild image path.")
 
-        post_result = json.loads(printer(await fetch.upload(f"{self.baseurl}/uploadImage", imagePath, {
+        post_result = json.loads(await fetch.upload(f"{self.baseurl}/uploadImage", imagePath, {
             "sessionKey": self.session_key,
             "type": type if isinstance(type, str) else type.value
-        })))
+        }))
         return components.Image(**post_result)
 
     @edge_case_handler

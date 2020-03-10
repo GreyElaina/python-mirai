@@ -9,6 +9,7 @@ app = Mirai(f"mirai://localhost:8070/ws?authKey={authKey}&qq={qq}")
 @app.receiver("GroupMessage")
 async def event_gm(app: Mirai, message: MessageChain, group: Group):
     if message.toString().startswith("/image"):
+        print("wdnmd")
         await app.sendGroupMessage(group, [
             Image.fromFileSystem("E:\\Image\\00C49FCD-D8D9-4966-B2FC-F18F6220485E.jpg"),
             Plain(text="??")
