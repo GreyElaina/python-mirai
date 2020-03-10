@@ -20,10 +20,6 @@ class Group(BaseModel):
     def getAvatarUrl(self) -> str:
         return f'https://p.qlogo.cn/gh/{self.id}/{self.id}_1/140'
 
-    async def getAvatarAsPillowImage(self) -> Image.Image:
-        async with session.get(self.getAvatarUrl()) as response:
-            return Image.open(BytesIO(await response.read()))
-
 class Member(BaseModel):
     id: int
     memberName: str
