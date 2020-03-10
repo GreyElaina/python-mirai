@@ -161,8 +161,7 @@ class Mirai(MiraiProtocol):
     for i in signature_mapping.values():
       if not isinstance(i, Depend):
         raise TypeError("you must use a Depend to patch the default value.")
-      else:
-        return signature_mapping
+    return signature_mapping
 
   async def signature_checkout(self, func, event_context, queue):
     signature_mapping = self.signature_getter(func)
@@ -188,7 +187,8 @@ class Mirai(MiraiProtocol):
         await self.main_entrance(
           {
             "func": depend_func,
-            "middlewares": depend.middlewares
+            "middlewares": depend.middlewares,
+            "dependencies": []
           },
           event_context, queue
         )
@@ -308,7 +308,7 @@ class Mirai(MiraiProtocol):
           if received_data:
             if received_data['type'] in MessageTypes:
                 if 'messageChain' in received_data: 
-                    received_data['messageChain'] = MessageChain.parse_obj(received_data['messageChain'])
+                  received_data['messageChain'] = MessageChain.parse_obj(received_data['messageChain'])
 
                 received_data = \
                     MessageTypes[received_data['type']].parse_obj(received_data)
@@ -337,7 +337,7 @@ class Mirai(MiraiProtocol):
         for event_body in list(self.event.values())\
               [self.registeredEventNames.index(event_context.name)]:
           if event_body:
-            EventLogger.info(f"handling a event: {event_context.name}, on {event_body}")
+            EventLogger.info(f"handling a event: {event_context.name}")
 
             asyncio.create_task(self.main_entrance(
               event_body,
@@ -432,7 +432,7 @@ class Mirai(MiraiProtocol):
     signature_mapping = self.signature_checker(depend_target.func)
     for k, v in signature_mapping.items():
       if type(v) == Depend:
-        self.checkEventBodyAnnotations(v)
+        self.checkEventBodyAnnotations()
         self.checkDependencies(v)
 
   def checkEventDependencies(self):

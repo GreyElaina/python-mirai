@@ -1,7 +1,6 @@
 from enum import Enum
 from dataclasses import dataclass
 from pydantic import BaseModel
-from PIL import Image
 from mirai.network import session
 from io import BytesIO
 
@@ -36,10 +35,6 @@ class Member(BaseModel):
 
     def getAvatarUrl(self) -> str:
         return f'http://q4.qlogo.cn/g?b=qq&nk={self.id}&s=140'
-
-    async def getAvatarAsPillowImage(self) -> Image.Image:
-        async with session.get(self.getAvatarUrl()) as response:
-            return Image.open(BytesIO(await response.read()))
 
 class MemberChangeableSetting(BaseModel):
     name: str
