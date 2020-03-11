@@ -309,15 +309,18 @@ class Mirai(MiraiProtocol):
             try:
               if received_data['type'] in MessageTypes:
                   if 'messageChain' in received_data: 
-                    received_data['messageChain'] = MessageChain.parse_obj(received_data['messageChain'])
+                    received_data['messageChain'] = \
+                      MessageChain.parse_obj(received_data['messageChain'])
 
                   received_data = \
-                      MessageTypes[received_data['type']].parse_obj(received_data)
+                    MessageTypes[received_data['type']].parse_obj(received_data)
 
               elif hasattr(ExternalEvents, received_data['type']):
                   # 判断当前项是否为 Event
                   received_data = \
-                      ExternalEvents[received_data['type']].value.parse_obj(received_data)
+                    ExternalEvents[received_data['type']]\
+                      .value\
+                      .parse_obj(received_data)
             except pydantic.ValidationError:
               SessionLogger.error(f"parse failed: {received_data}")
             else:
