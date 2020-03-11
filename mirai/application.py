@@ -16,7 +16,7 @@ from mirai.event.message import components
 from mirai.event.message.models import (
     FriendMessage, GroupMessage, MessageItemType, MessageTypes)
 from mirai.friend import Friend
-from mirai.group import Group, Member
+from mirai.entities.group import Group, Member
 from mirai.logger import Event as EventLogger
 from mirai.logger import Session as SessionLogger
 from mirai.network import fetch, session

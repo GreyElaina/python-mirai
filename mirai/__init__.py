@@ -63,10 +63,10 @@ from mirai.event.external import (
 )
 from mirai.event.external.enums import ExternalEvents
 
-from mirai.friend import (
+from mirai.entities.friend import (
     Friend
 )
-from mirai.group import (
+from mirai.entities.group import (
     Group,
     Member,
     MemberChangeableSetting,

@@ -9,8 +9,8 @@ from mirai.event.message.models import FriendMessage, GroupMessage, BotMessage, 
 
 from mirai.event import ExternalEvent
 from mirai.event.external.enums import ExternalEvents
-from mirai.friend import Friend
-from mirai.group import Group, GroupSetting, Member, MemberChangeableSetting
+from mirai.entities.friend import Friend
+from mirai.entities.group import Group, GroupSetting, Member, MemberChangeableSetting
 from mirai.event.message.chain import MessageChain
 from mirai.misc import ImageRegex, ImageType, assertOperatorSuccess, raiser, printer, getMatchedString
 from mirai.network import fetch

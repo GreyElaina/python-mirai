@@ -1,8 +1,8 @@
 from pydantic import BaseModel
 from mirai.event import ExternalEvent
 from mirai.event.enums import ExternalEventTypes as EventType
-from mirai.group import Permission, Group, Member
-from mirai.friend import Friend
+from mirai.entities.group import Permission, Group, Member
+from mirai.entities.friend import Friend
 import typing as T
 
 class BotOnlineEvent(ExternalEvent):

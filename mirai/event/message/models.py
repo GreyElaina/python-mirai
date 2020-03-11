@@ -1,8 +1,8 @@
 import typing as T
 from enum import Enum
 from .base import MessageComponentTypes
-from mirai.friend import Friend
-from mirai.group import Group, Member
+from mirai.entities.friend import Friend
+from mirai.entities.group import Group, Member
 from pydantic import BaseModel
 from .chain import MessageChain
 

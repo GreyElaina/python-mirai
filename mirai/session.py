@@ -19,8 +19,8 @@ from .event.external.enums import ExternalEvents
 from .event.message import components
 from .event.message.models import (
     FriendMessage, GroupMessage, MessageItemType, MessageTypes)
-from .friend import Friend
-from .group import Group, Member
+from .entities.friend import Friend
+from .entities.group import Group, Member
 from .logger import Event as EventLogger
 from .logger import Session as SessionLogger
 from .network import fetch, session
