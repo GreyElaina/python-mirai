@@ -80,8 +80,5 @@ from mirai.entities.group import (
 
 import mirai.network
 import mirai.protocol
-from mirai.session import (
-    Session
-)
 
 from mirai.application import Mirai

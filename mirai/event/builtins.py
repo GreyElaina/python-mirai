@@ -5,7 +5,7 @@ from typing import Any
 class UnexpectedException(BaseModel):
     error: Exception
     event: InternalEvent
-    session: Any
+    application: Any
 
     class Config:
         arbitrary_types_allowed = True
