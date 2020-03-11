@@ -13,6 +13,10 @@ from mirai.event.message.components import (
     Source,
     AtAll,
     Face,
+    Quote,
+    Json as JsonMessage,
+    Xml as XmlMessage,
+    App as LightApp,
     Image
 )
 from mirai.event.message.chain import (
