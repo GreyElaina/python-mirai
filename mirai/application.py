@@ -306,21 +306,25 @@ class Mirai(MiraiProtocol):
             else:
               break
           if received_data:
-            if received_data['type'] in MessageTypes:
-                if 'messageChain' in received_data: 
-                  received_data['messageChain'] = MessageChain.parse_obj(received_data['messageChain'])
+            try:
+              if received_data['type'] in MessageTypes:
+                  if 'messageChain' in received_data: 
+                    received_data['messageChain'] = MessageChain.parse_obj(received_data['messageChain'])
 
-                received_data = \
-                    MessageTypes[received_data['type']].parse_obj(received_data)
-    
-            elif hasattr(ExternalEvents, received_data['type']):
-                # 判断当前项是否为 Event
-                received_data = \
-                    ExternalEvents[received_data['type']].value.parse_obj(received_data)
-          await queue.put(InternalEvent(
-            name=self.getEventCurrentName(type(received_data)),
-            body=received_data
-          ))
+                  received_data = \
+                      MessageTypes[received_data['type']].parse_obj(received_data)
+
+              elif hasattr(ExternalEvents, received_data['type']):
+                  # 判断当前项是否为 Event
+                  received_data = \
+                      ExternalEvents[received_data['type']].value.parse_obj(received_data)
+            except pydantic.ValidationError:
+              SessionLogger.error(f"parse failed: {received_data}")
+            else:
+              await queue.put(InternalEvent(
+                name=self.getEventCurrentName(type(received_data)),
+                body=received_data
+              ))
 
   async def event_runner(self, exit_signal_status, queue: asyncio.Queue):
     while not exit_signal_status():
