@@ -29,7 +29,7 @@ class Mirai(MiraiProtocol):
   event: Dict[
     str, List[Callable[[Any], Awaitable]]
   ] = {}
-  run_forever_target: List[Callable] = []
+  subroutines: List[Callable] = []
   useWebsocket = False
 
   def __init__(self, 
@@ -292,7 +292,7 @@ class Mirai(MiraiProtocol):
         )
 
   async def ws_event_receiver(self, exit_signal, queue):
-    await self.checkWebsocket()
+    await self.checkWebsocket(force=True)
     async with aiohttp.ClientSession() as session:
       async with session.ws_connect(
         f"{self.baseurl}/all?sessionKey={self.session_key}"
@@ -547,8 +547,8 @@ class Mirai(MiraiProtocol):
   def registeredEventNames(self):
     return [self.getEventCurrentName(i) for i in self.event.keys()]
 
-  def addForeverTarget(self, func: Callable[["Mirai"], Any]):
-    self.run_forever_target.append(func)
+  def subroutine(self, func: Callable[["Mirai"], Any]):
+    self.subroutines.append(func)
 
   async def checkWebsocket(self, force=False):
     if self.useWebsocket:
@@ -570,6 +570,9 @@ class Mirai(MiraiProtocol):
     loop.run_until_complete(self.enable_session())
     if not no_polling:
       if not self.useWebsocket:
+        SessionLogger.warning("http's fetchMessage is disabled in mirai-api-http 1.2.1(it's a bug :P).")
+        SessionLogger.warning("so, you can use WebSocket.")
+        SessionLogger.warning("if it throw a unexpected error, you should call the httpapi's author.")
         loop.create_task(self.message_polling(lambda: exit_signal, queue))
       else:
         SessionLogger.warning("you are using WebSocket, it's a experimental method.")
@@ -580,7 +583,7 @@ class Mirai(MiraiProtocol):
       loop.create_task(self.event_runner(lambda: exit_signal, queue))
     
     if not no_forever:
-      for i in self.run_forever_target:
+      for i in self.subroutines:
         loop.create_task(i(self))
 
     try:
