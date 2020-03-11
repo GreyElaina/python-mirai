@@ -47,10 +47,10 @@ from .chain import MessageChain
 
 class Quote(BaseMessageComponent):
     type: MessageComponentTypes = "Quote"
-    id: int
-    groupId: int
-    senderId: int
-    origin: MessageChain
+    id: T.Optional[int]
+    groupId: T.Optional[int]
+    senderId: T.Optional[int]
+    origin: T.Optional[MessageChain]
 
     def toString(self):
         return ""
