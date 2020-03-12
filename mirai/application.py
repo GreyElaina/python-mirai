@@ -559,7 +559,7 @@ class Mirai(MiraiProtocol):
             session=self
           )
         ))
-    self.subroutines.append(func)
+    self.subroutines.append(warpper)
     return func
 
   async def checkWebsocket(self, force=False):

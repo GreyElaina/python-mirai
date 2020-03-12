@@ -124,10 +124,13 @@ class MiraiProtocol:
 
     @protocol_log
     @edge_case_handler
-    async def revokeMessage(self, source: T.Union[components.Source, int]):
+    async def revokeMessage(self, source: T.Union[components.Source, BotMessage, int]):
         return assertOperatorSuccess(await fetch.http_post(f"{self.baseurl}/recall", {
             "sessionKey": self.session_key,
-            "target": source if isinstance(source, int) else source.id
+            "target": source if isinstance(source, int) else source.id \
+                if isinstance(source, components.Source) else source.messageId\
+                if isinstance(source, BotMessage) else\
+                    raiser(TypeError("invaild message source"))
         }), raise_exception=True)
 
     @protocol_log
