@@ -547,7 +547,20 @@ class Mirai(MiraiProtocol):
     return [self.getEventCurrentName(i) for i in self.event.keys()]
 
   def subroutine(self, func: Callable[["Mirai"], Any]):
+    async def warpper(app: "Mirai"):
+      try:
+        return await func(app)
+      except Exception as e:
+        await self.queue.put(InternalEvent(
+          name="UnexpectedException",
+          body=UnexpectedException(
+            error=e,
+            event=None,
+            session=self
+          )
+        ))
     self.subroutines.append(func)
+    return func
 
   async def checkWebsocket(self, force=False):
     if self.useWebsocket:
@@ -564,7 +577,7 @@ class Mirai(MiraiProtocol):
     self.checkEventDependencies()
 
     loop = loop or asyncio.get_event_loop()
-    queue = asyncio.Queue(loop=loop)
+    self.queue = queue = asyncio.Queue(loop=loop)
     exit_signal = False
     loop.run_until_complete(self.enable_session())
     if not no_polling:
