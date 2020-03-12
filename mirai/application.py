@@ -1,29 +1,29 @@
-from urllib import parse
-from typing import Union, List, Dict, Optional, Callable, Any, Awaitable, NamedTuple
-import typing as T
 import asyncio
-from functools import partial
 import copy
 import inspect
+import traceback
+import typing as T
+from functools import partial
+from typing import (
+    Any, Awaitable, Callable, Dict, List, NamedTuple, Optional, Union)
+from urllib import parse
 
-from mirai.misc import raiser
+import aiohttp
 
-from mirai.event.builtins import UnexpectedException
 from mirai.depend import Depend
-from mirai.event import ExternalEvent, ExternalEventTypes, InternalEvent
-from mirai.event.external.enums import ExternalEvents
-from mirai.event.message import components
-from mirai.event.message.models import (
-    FriendMessage, GroupMessage, MessageItemType, MessageTypes)
 from mirai.entities.friend import Friend
 from mirai.entities.group import Group, Member
+from mirai.event import ExternalEvent, ExternalEventTypes, InternalEvent
+from mirai.event.builtins import UnexpectedException
+from mirai.event.external.enums import ExternalEvents
+from mirai.event.message import MessageChain, components
+from mirai.event.message.models import (FriendMessage, GroupMessage,
+                                        MessageItemType, MessageTypes)
 from mirai.logger import Event as EventLogger
 from mirai.logger import Session as SessionLogger
+from mirai.misc import raiser
 from mirai.network import fetch, session
 from mirai.protocol import MiraiProtocol
-from mirai.event.message import MessageChain
-import aiohttp
-import traceback
 
 class Mirai(MiraiProtocol):
   event: Dict[
@@ -521,7 +521,6 @@ class Mirai(MiraiProtocol):
     }
 
   def getEventCurrentName(self, event_value):
-    from .event.builtins import UnexpectedException
     if inspect.isclass(event_value) and issubclass(event_value, ExternalEvent): # subclass
       return event_value.__name__
     elif isinstance(event_value, ( # normal class
