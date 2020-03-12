@@ -20,7 +20,10 @@ class fetch:
                     raise NetworkError(f"method=POST, url={url}, data={data_map}, status={response.status}")
                 data = await response.text(encoding="utf-8")
                 Network.debug(f"requested url={url}, by data_map={data_map}, and status={response.status}, data={data}")
-        return json.loads(data)
+        try:
+            return json.loads(data)
+        except json.decoder.JSONDecodeError:
+            Network.error(f"requested {url} with {data_map}, responsed {data}, decode failed...")
 
     @staticmethod
     async def http_get(url, params=None): 
@@ -28,7 +31,10 @@ class fetch:
             async with session.get(url, params=params) as response:
                 data = await response.text(encoding="utf-8")
                 Network.debug(f"requested url={url}, by params={params}, and status={response.status}, data={data}")
-        return json.loads(data)
+        try:
+            return json.loads(data)
+        except json.decoder.JSONDecodeError:
+            Network.error(f"requested {url} with {params}, responsed {data}, decode failed...")
 
     @staticmethod
     async def upload(url, file: Path, addon_dict: dict):
