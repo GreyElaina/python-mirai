@@ -8,6 +8,7 @@ from typing import (
     Any, Awaitable, Callable, Dict, List, NamedTuple, Optional, Union)
 from urllib import parse
 
+import pydantic
 import aiohttp
 
 from mirai.depend import Depend
@@ -323,6 +324,7 @@ class Mirai(MiraiProtocol):
                       .parse_obj(received_data)
             except pydantic.ValidationError:
               SessionLogger.error(f"parse failed: {received_data}")
+              traceback.print_exc()
             else:
               await queue.put(InternalEvent(
                 name=self.getEventCurrentName(type(received_data)),

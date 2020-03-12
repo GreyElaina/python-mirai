@@ -30,7 +30,7 @@ class Plain(BaseMessageComponent):
     text: str
 
     def __init__(self, text, type="Plain"):
-        super().__init__(text=text, type=type)
+        super().__init__(text=text, type="Plain")
 
     def toString(self):
         return self.text
@@ -50,7 +50,12 @@ class Quote(BaseMessageComponent):
     id: T.Optional[int]
     groupId: T.Optional[int]
     senderId: T.Optional[int]
-    origin: T.Optional[MessageChain]
+    origin: MessageChain
+
+    @validator("origin", always=True, pre=True)
+    @classmethod
+    def origin_formater(cls, v):
+        return MessageChain.parse_obj(v)
 
     def toString(self):
         return ""
@@ -68,6 +73,9 @@ class At(BaseMessageComponent):
 
 class AtAll(BaseMessageComponent):
     type: MessageComponentTypes = "AtAll"
+
+    def __init__(self, type="AtAll"):
+        super().__init__(type="AtAll")
 
     def toString(self):
         return f"[AtAll]"

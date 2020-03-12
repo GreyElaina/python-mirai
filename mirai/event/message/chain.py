@@ -2,11 +2,11 @@ import typing as T
 from pydantic import BaseModel
 
 from .base import BaseMessageComponent
-from mirai.misc import raiser, printer
+from mirai.misc import raiser, printer, if_error_print_arg
 from .components import Source
 
 class MessageChain(BaseModel):
-    __root__: T.List[T.Any] = []
+    __root__: T.List[BaseMessageComponent] = []
 
     def __add__(self, value):
         if isinstance(value, BaseMessageComponent):

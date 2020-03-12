@@ -8,6 +8,7 @@ import os
 import re
 import aiohttp
 from . import exceptions
+import traceback
 
 def assertOperatorSuccess(result, raise_exception=False, return_as_is=False):
   if "code" in result:
@@ -159,4 +160,13 @@ def edge_case_handler(func):
       except:
         raise
   warpper.__name__ = func.__name__
+  return warpper
+
+def if_error_print_arg(func):
+  def warpper(*args, **kwargs):
+    try:
+      return func(*args, **kwargs)
+    except:
+      print(args, kwargs)
+      traceback.print_exc()
   return warpper
