@@ -265,7 +265,7 @@ QQFaces = {
     "unknown7":301,#暂时不知道
     "zhutou":302,
     "mao":303,
-    "8":304,#暂时不知道
+    "unknown8":304,#暂时不知道
     "baobao":305,
     "meiyuanfuhao":306,
     "dengpao":307,#安卓版本不显示
