@@ -152,6 +152,8 @@ def edge_case_handler(func):
         if client_connect_error_delay >= 40:
           Protocol.error("cannot retry any more, exiting....")
           exit(2)
+        else:
+          await asyncio.sleep(client_connect_error_delay)
         Protocol.error(f"cannot connect to the headless client, will retry after {client_connect_error_delay} seconds.")
         continue
       except exceptions.CallDevelopers:

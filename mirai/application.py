@@ -7,6 +7,7 @@ from functools import partial
 from typing import (
     Any, Awaitable, Callable, Dict, List, NamedTuple, Optional, Union)
 from urllib import parse
+import contextlib
 
 import pydantic
 import aiohttp
