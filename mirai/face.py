@@ -177,11 +177,11 @@ QQFaces = {
     "haipa":206,
     "huachi":207,
     "xiaoyang":208,
-    "x":209,#暂时不知道
+    "unknown2":209,#暂时不知道
     "biaolei":210,
     "wobukan":211,
     "tuosai":212,
-    "xx":213,#暂时不知道
+    "unknown3":213,#暂时不知道
     #214-247表情在电脑版qq9.2.3无法显示
     "bobo":214,
     "hulian":215,
@@ -234,7 +234,7 @@ QQFaces = {
     "weixiao":270,
     "nanguo":271,
     "ku":272,
-    "x":273,#暂时不知道,qq安卓版本8.2.8.4440不显示
+    "unknown4":273,#暂时不知道,qq安卓版本8.2.8.4440不显示
     "zhuakuang":274,
     "tu":275,
     "touxiao":276,
@@ -257,15 +257,15 @@ QQFaces = {
     "kulou":293,
     "qiaoda":294,
     "zaijian":295,
-    "x":296,#安卓版本无显示
+    "unknown5":296,#安卓版本无显示
     "dadou":297,
     "aiqing":298,
     "tiaotiao":299,
-    "x":300,#暂时不知道
-    "x":301,#暂时不知道
+    "unknown6":300,#暂时不知道
+    "unknown7":301,#暂时不知道
     "zhutou":302,
     "mao":303,
-    "x":304,#暂时不知道
+    "8":304,#暂时不知道
     "baobao":305,
     "meiyuanfuhao":306,
     "dengpao":307,#安卓版本不显示
