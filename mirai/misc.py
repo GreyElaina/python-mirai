@@ -11,6 +11,11 @@ from . import exceptions
 import traceback
 
 def assertOperatorSuccess(result, raise_exception=False, return_as_is=False):
+  if not result:
+    if raise_exception:
+      raise exceptions.CallDevelopers("this method returned None.")
+    else:
+      return None
   if "code" in result:
     if not raise_exception:
       return result['code'] == 0
