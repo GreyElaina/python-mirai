@@ -13,7 +13,7 @@ import traceback
 def assertOperatorSuccess(result, raise_exception=False, return_as_is=False):
   if not result:
     if raise_exception:
-      raise exceptions.CallDevelopers("this method returned None.")
+      raise exceptions.InvaildSession("this method returned None, as sessionkey invaild...")
     else:
       return None
   if "code" in result:
