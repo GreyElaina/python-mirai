@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from .base import BaseMessageComponent
 from mirai.misc import raiser, printer, if_error_print_arg
 from .components import Source
+from mirai.logger import Protocol
 
 class MessageChain(BaseModel):
     __root__: T.List[BaseMessageComponent] = []
@@ -21,13 +22,17 @@ class MessageChain(BaseModel):
 
     @classmethod
     def parse_obj(cls, obj):
-        from .components import ComponentTypes
+        from .components import MessageComponents
+        result = []
         for i in obj:
             if not isinstance(i, dict):
                 raise TypeError("invaild value")
-        return cls(__root__=\
-            [ComponentTypes.__members__[m['type']].value.parse_obj(m) for m in obj]
-        )
+            try:
+                result.append(MessageComponents[i['type']].parse_obj(i))
+            except:
+                Protocol.error(f"error throwed by message serialization: {i['type']}, it's {i}")
+                raise
+        return cls(__root__=result)
 
     def __iter__(self):
         yield from self.__root__

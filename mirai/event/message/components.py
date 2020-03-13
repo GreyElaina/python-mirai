@@ -57,6 +57,15 @@ class Quote(BaseMessageComponent):
     def origin_formater(cls, v):
         return MessageChain.parse_obj(v)
 
+    def __init__(self, id: int, groupId: int, senderId: int, origin: int, type="Quote"):
+        super().__init__(
+            id=id,
+            groupId=groupId,
+            senderId=senderId,
+            origin=origin,
+            type="Quote"
+        )
+
     def toString(self):
         return ""
 
@@ -97,7 +106,7 @@ class Image(BaseMessageComponent):
     url: T.Optional[HttpUrl] = None
 
     def __init__(self, imageId, url=None, type="Image"):
-        super().__init__(imageId=imageId, url=url, type=type)
+        super().__init__(imageId=imageId, url=url, type="Image")
 
     @validator("imageId", always=True, pre=True)
     @classmethod
@@ -153,19 +162,6 @@ class Unknown(BaseMessageComponent):
 
     def toString(self):
         return ""
-
-class ComponentTypes(Enum):
-    Plain = Plain
-    Source = Source
-    At = At
-    AtAll = AtAll
-    Face = Face
-    Image = Image
-    Quote = Quote
-    Xml = Xml
-    Json = Json
-    App = App
-    Unknown = Unknown
 
 MessageComponents = {
     "At": At,
