@@ -147,7 +147,7 @@ def edge_case_handler(func):
       except (exceptions.InvaildSession, exceptions.ValidatedSession):
         Protocol.error("a unexpected session error, we will deal with it.")
         await self.enable_session()
-      except aiohttp.client_exceptions.ClientConnectorError:
+      except aiohttp.client_exceptions.ClientError:
         client_connect_error_delay += 5
         if client_connect_error_delay >= 40:
           Protocol.error("cannot retry any more, exiting....")
