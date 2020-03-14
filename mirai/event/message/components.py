@@ -102,25 +102,11 @@ class Face(BaseMessageComponent):
 
 class Image(BaseMessageComponent):
     type: MessageComponentTypes = "Image"
-    imageId: UUID
+    imageId: str
     url: T.Optional[HttpUrl] = None
 
     def __init__(self, imageId, url=None, type="Image"):
         super().__init__(imageId=imageId, url=url, type="Image")
-
-    @validator("imageId", always=True, pre=True)
-    @classmethod
-    def imageId_formater(cls, v):
-        if isinstance(v, str):
-            imageType = "group"
-            uuid_string = getMatchedString(re.search(ImageRegex[imageType], v))
-            if not uuid_string:
-                imageType = "friend"
-                uuid_string = getMatchedString(re.search(ImageRegex[imageType], v))
-            if uuid_string:
-                return UUID(uuid_string)
-        elif isinstance(v, UUID):
-            return v
 
     def toString(self):
         return f"[Image::{self.imageId}]"

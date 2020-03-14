@@ -349,7 +349,8 @@ class Mirai(MiraiProtocol):
           if event_body:
             EventLogger.info(f"handling a event: {event_context.name}")
 
-            asyncio.create_task(self.main_entrance(
+            running_loop = asyncio.get_running_loop()
+            running_loop.create_task(self.main_entrance(
               event_body,
               event_context, queue
             ))
