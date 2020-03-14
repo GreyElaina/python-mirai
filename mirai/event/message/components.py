@@ -124,10 +124,10 @@ class Image(BaseMessageComponent):
         return f"[Image::{self.imageId}]"
 
     def asGroupImage(self) -> str:
-        return f"{{{str(self.imageId).upper()}}}.jpg"
+        return f"{{{self.imageId.upper()}}}.jpg"
 
     def asFriendImage(self) -> str:
-        return f"/{str(self.imageId)}"
+        return f"/{self.imageId.lower()}"
 
     @staticmethod
     def fromFileSystem(path: T.Union[Path, str]) -> InternalImage:
