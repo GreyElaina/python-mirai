@@ -105,6 +105,18 @@ class Image(BaseMessageComponent):
     imageId: str
     url: T.Optional[HttpUrl] = None
 
+    @validator("imageId", always=True, pre=True)
+    @classmethod
+    def imageId_formater(cls, v):
+        length = len(v)
+        if length == 42:
+            # group
+            return v[1:-5]
+        elif length == 37:
+            return v[1:]
+        else:
+            return v
+
     def __init__(self, imageId, url=None, type="Image"):
         super().__init__(imageId=imageId, url=url, type="Image")
 

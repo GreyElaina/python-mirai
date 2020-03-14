@@ -2,7 +2,6 @@ import asyncio
 import copy
 import inspect
 import traceback
-import typing as T
 from functools import partial
 from typing import (
     Any, Awaitable, Callable, Dict, List, NamedTuple, Optional, Union)
@@ -35,12 +34,12 @@ class Mirai(MiraiProtocol):
   useWebsocket = False
 
   def __init__(self, 
-    url: T.Optional[str] = None,
+    url: Optional[str] = None,
 
-    host: T.Optional[str] = None,
-    port: T.Optional[int] = None,
-    authKey: T.Optional[str] = None,
-    qq: T.Optional[int] = None,
+    host: Optional[str] = None,
+    port: Optional[int] = None,
+    authKey: Optional[str] = None,
+    qq: Optional[int] = None,
 
     websocket: bool = False
   ):
@@ -59,7 +58,7 @@ class Mirai(MiraiProtocol):
           if urlinfo.path == "/ws":
             self.useWebsocket = True
           else:
-            self.useWebsocket = False
+            self.useWebsocket = websocket
 
           authKey = query_info["authKey"][0]
 
@@ -100,11 +99,11 @@ class Mirai(MiraiProtocol):
     return self
 
   def receiver(self, event_name,
-      dependencies: T.List[Depend] = [],
-      use_middlewares: T.List[T.Callable] = []
+      dependencies: List[Depend] = [],
+      use_middlewares: List[Callable] = []
     ):
     def receiver_warpper(
-      func: T.Callable[[T.Union[FriendMessage, GroupMessage], "Session"], T.Awaitable[T.Any]]
+      func: Callable[[Union[FriendMessage, GroupMessage], "Session"], Awaitable[Any]]
     ):
       if not inspect.iscoroutinefunction(func):
         raise TypeError("event body must be a coroutine function.")
@@ -336,7 +335,7 @@ class Mirai(MiraiProtocol):
     while not exit_signal_status():
       event_context: InternalEvent
       try:
-        event_context: T.NamedTuple[InternalEvent] = await asyncio.wait_for(queue.get(), 3)
+        event_context: NamedTuple[InternalEvent] = await asyncio.wait_for(queue.get(), 3)
       except asyncio.TimeoutError:
         if exit_signal_status():
           break
@@ -377,7 +376,7 @@ class Mirai(MiraiProtocol):
     }
 
   def checkEventBodyAnnotations(self):
-    event_bodys: T.Dict[T.Callable, T.List[str]] = {}
+    event_bodys: Dict[Callable, List[str]] = {}
     for event_name in self.event:
       event_body_list = self.event[event_name]
       for i in event_body_list:
@@ -406,8 +405,8 @@ class Mirai(MiraiProtocol):
             except ValueError:
               raise
 
-  def getFuncRegisteredEvents(self, callable_target: T.Callable):
-    event_bodys: T.Dict[T.Callable, T.List[str]] = {}
+  def getFuncRegisteredEvents(self, callable_target: Callable):
+    event_bodys: Dict[Callable, List[str]] = {}
     for event_name in self.event:
       event_body_list = sum([list(i.values()) for i in self.event[event_name]], [])
       for i in event_body_list:
@@ -417,7 +416,7 @@ class Mirai(MiraiProtocol):
           event_bodys[i['func']].append(event_name)
     return event_bodys.get(callable_target)
 
-  def checkFuncAnnotations(self, callable_target: T.Callable):
+  def checkFuncAnnotations(self, callable_target: Callable):
     restraint_mapping = self.getRestraintMapping()
     whileList = self.signature_getter(callable_target)
     registered_events = self.getFuncRegisteredEvents(callable_target)
@@ -457,7 +456,7 @@ class Mirai(MiraiProtocol):
 
   def exception_handler(self, exception_class=None):
     def receiver_warpper(
-      func: T.Callable[[T.Union[FriendMessage, GroupMessage], "Session"], T.Awaitable[T.Any]]
+      func: Callable[[Union[FriendMessage, GroupMessage], "Session"], Awaitable[Any]]
     ):
       event_name = "UnexpectedException"
 
@@ -593,8 +592,8 @@ class Mirai(MiraiProtocol):
       else:
         SessionLogger.warning("you are using WebSocket, it's a experimental method.")
         SessionLogger.warning("but, websocket is remember way to fetch message and event,")
-        SessionLogger.warning("and http's fetchMessage is disabled in mirai-api-http 1.2.1(it's a bug :P).")
-        SessionLogger.warning("if it throw a unexpected error, you can call the httpapi's author.")
+        SessionLogger.warning("and http's fetchMessage is disabled when websocket is enabled")
+        SessionLogger.warning("if it throw a unexpected error, you can use issues on github.")
         loop.create_task(self.ws_event_receiver(lambda: exit_signal, queue))
       loop.create_task(self.event_runner(lambda: exit_signal, queue))
     
