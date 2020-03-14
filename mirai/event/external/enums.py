@@ -12,6 +12,9 @@ class ExternalEvents(Enum):
     BotUnmuteEvent = BotUnmuteEvent
     BotJoinGroupEvent = BotJoinGroupEvent
 
+    GroupRecallEvent = GroupRecallEvent
+    FriendRecallEvent = FriendRecallEvent
+
     GroupNameChangeEvent = GroupNameChangeEvent
     GroupEntranceAnnouncementChangeEvent = GroupEntranceAnnouncementChangeEvent
     GroupMuteAllEvent = GroupMuteAllEvent

@@ -4,6 +4,7 @@ from mirai.event.enums import ExternalEventTypes as EventType
 from mirai.entities.group import Permission, Group, Member
 from mirai.entities.friend import Friend
 import typing as T
+from datetime import datetime
 
 class BotOnlineEvent(ExternalEvent):
     type: EventType = EventType.BotOnlineEvent
@@ -43,6 +44,21 @@ class BotUnmuteEvent(ExternalEvent):
 class BotJoinGroupEvent(ExternalEvent):
     type: EventType = EventType.BotJoinGroupEvent
     group: Group
+
+class GroupRecallEvent(ExternalEvent):
+    type: EventType = EventType.GroupRecallEvent
+    authorId: int
+    messageId: int
+    time: datetime
+    group: Group
+    operator: Member
+
+class FriendRecallEvent(ExternalEvent):
+    type: EventType = EventType.FriendRecallEvent
+    authorId: int
+    messageId: int
+    time: int
+    operator: int
 
 class GroupNameChangeEvent(ExternalEvent):
     type: EventType = EventType.GroupNameChangeEvent
