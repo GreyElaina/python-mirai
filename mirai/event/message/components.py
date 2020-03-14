@@ -139,21 +139,21 @@ class Xml(BaseMessageComponent):
     type: MessageComponentTypes = "Xml"
     XML: str
 
-    def __init__(self, xml):
+    def __init__(self, xml, type="Xml"):
         super().__init__(XML=xml)
 
 class Json(BaseMessageComponent):
     type: MessageComponentTypes = "Json"
     Json: dict = Field(..., alias="json")
 
-    def __init__(self, json: dict):
+    def __init__(self, json: dict, type="Json"):
         super().__init__(Json=json)
 
 class App(BaseMessageComponent):
     type: MessageComponentTypes = "App"
     content: str
 
-    def __init__(self, content: str):
+    def __init__(self, content: str, type="App"):
         super().__init__(content=content)
 
 class Unknown(BaseMessageComponent):
