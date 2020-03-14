@@ -133,6 +133,16 @@ class Image(BaseMessageComponent):
     def fromFileSystem(path: T.Union[Path, str]) -> InternalImage:
         return InternalImage(path)
 
+    async def toBytes(self, chunk_size=256) -> BytesIO:
+        async with session.get(self.url) as response:
+            result = BytesIO()
+            while True:
+                chunk = await response.content.read(chunk_size)
+                if not chunk:
+                    break
+                result.write(chunk)
+        return result
+
 class Xml(BaseMessageComponent):
     type: MessageComponentTypes = "Xml"
     XML: str
