@@ -14,3 +14,5 @@ class Friend(BaseModel):
 
     def getAvatarUrl(self) -> str:
         return f'http://q4.qlogo.cn/g?b=qq&nk={self.id}&s=140'
+
+    

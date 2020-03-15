@@ -271,8 +271,11 @@ class Mirai(MiraiProtocol):
     while not exit_signal():
       await asyncio.sleep(0.5)
 
-      result  = \
-        await super().fetchMessage(count)
+      try:
+        result  = \
+          await super().fetchMessage(count)
+      except pydantic.ValidationError:
+        continue
       last_length = len(result)
       latest_result = []
       while True:

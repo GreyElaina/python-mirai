@@ -18,6 +18,7 @@ from mirai.event.message.base import BaseMessageComponent
 from mirai.event.message import components
 from mirai.misc import protocol_log, edge_case_handler
 from mirai.image import InternalImage
+from mirai.logger import Protocol as ProtocolLogger
 import threading
 
 class MiraiProtocol:
@@ -190,20 +191,25 @@ class MiraiProtocol:
             }
         ), raise_exception=True, return_as_is=True)
         # 因为重新生成一个开销太大, 所以就直接在原数据内进行遍历替换
-        for index in range(len(result)):
-            # 判断当前项是否为 Message
-            if result[index]['type'] in MessageTypes:
-                # 使用 custom_parse 方法处理消息链
-                if 'messageChain' in result[index]: 
-                    result[index]['messageChain'] = MessageChain.parse_obj(result[index]['messageChain'])
+        try:
+            for index in range(len(result)):
+                # 判断当前项是否为 Message
+                if result[index]['type'] in MessageTypes:
+                    # 使用 custom_parse 方法处理消息链
+                    if 'messageChain' in result[index]: 
+                        result[index]['messageChain'] = MessageChain.parse_obj(result[index]['messageChain'])
 
-                result[index] = \
-                    MessageTypes[result[index]['type']].parse_obj(result[index])
-    
-            elif hasattr(ExternalEvents, result[index]['type']):
-                # 判断当前项为 Event
-                result[index] = \
-                    ExternalEvents[result[index]['type']].value.parse_obj(result[index])
+                    result[index] = \
+                        MessageTypes[result[index]['type']].parse_obj(result[index])
+
+                elif hasattr(ExternalEvents, result[index]['type']):
+                    # 判断当前项为 Event
+                    result[index] = \
+                        ExternalEvents[result[index]['type']].value.parse_obj(result[index])
+        except pydantic.ValidationError:
+            ProtocolLogger.error(f"parse failed: {result}")
+            traceback.print_exc()
+            raise
         return result
 
     @protocol_log
