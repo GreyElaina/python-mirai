@@ -32,6 +32,7 @@ class Mirai(MiraiProtocol):
   ] = {}
   subroutines: List[Callable] = []
   useWebsocket = False
+  listening_exceptions: List[Exception] = []
 
   def __init__(self, 
     url: Optional[str] = None,
@@ -198,7 +199,8 @@ class Mirai(MiraiProtocol):
           EventLogger.error(f"threw a exception by {event_context.name}, it's about Annotations Checker, please report to developer.")
           traceback.print_exc()
         except Exception as e:
-          EventLogger.error(f"threw a exception by {event_context.name} in a depend, and it's {e}, body has been cancelled.")
+          if type(e) not in self.listening_exceptions:
+            EventLogger.error(f"threw a exception by {event_context.name} in a depend, and it's {e}, body has been cancelled.")
           await self.throw_exception_event(event_context, queue, e)
           return
     else:
@@ -272,7 +274,8 @@ class Mirai(MiraiProtocol):
       EventLogger.error(f"threw a exception by {event_context.name}, it's about Annotations Checker, please report to developer.")
       traceback.print_exc()
     except Exception as e:
-      EventLogger.error(f"threw a exception by {event_context.name}, and it's {e}")
+      if type(e) not in self.listening_exceptions:
+        EventLogger.error(f"threw a exception by {event_context.name}, and it's {e}")
       await self.throw_exception_event(event_context, queue, e)
 
   async def message_polling(self, exit_signal, queue, count=10):
@@ -490,6 +493,10 @@ class Mirai(MiraiProtocol):
         self.event[event_name] = [protocol]
       else:
         self.event[event_name].append(protocol)
+
+      if exception_class:
+        if exception_class not in self.listening_exceptions:
+          self.listening_exceptions.append(exception_class)
       return func
     return receiver_warpper
 
