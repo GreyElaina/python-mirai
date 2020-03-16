@@ -184,15 +184,23 @@ class Mirai(MiraiProtocol):
           depend_func = depend.func.__call__
         else:
           raise TypeError("must be callable.")
-
-        await self.main_entrance(
-          {
-            "func": depend_func,
-            "middlewares": depend.middlewares,
-            "dependencies": []
-          },
-          event_context, queue
-        )
+        
+        try:
+          await self.main_entrance(
+            {
+              "func": depend_func,
+              "middlewares": depend.middlewares,
+              "dependencies": []
+            },
+            event_context, queue
+          )
+        except (NameError, TypeError) as e:
+          EventLogger.error(f"threw a exception by {event_context.name}, it's about Annotations Checker, please report to developer.")
+          traceback.print_exc()
+        except Exception as e:
+          EventLogger.error(f"threw a exception by {event_context.name} in a depend, and it's {e}, body has been cancelled.")
+          await self.throw_exception_event(event_context, queue, e)
+          return
     else:
       if inspect.isclass(run_body):
         if hasattr(run_body, "__call__"):
@@ -470,7 +478,7 @@ class Mirai(MiraiProtocol):
         if type(context.error) == exception_class:
           return await func(context, *args, **kwargs)
 
-      func_warpper_inout.__annotations__ = func.__annotations__
+      func_warpper_inout.__annotations__.update(func.__annotations__)
 
       protocol = {
         "func": func_warpper_inout,

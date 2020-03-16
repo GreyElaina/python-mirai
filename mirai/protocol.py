@@ -195,7 +195,6 @@ class MiraiProtocol:
             for index in range(len(result)):
                 # 判断当前项是否为 Message
                 if result[index]['type'] in MessageTypes:
-                    # 使用 custom_parse 方法处理消息链
                     if 'messageChain' in result[index]: 
                         result[index]['messageChain'] = MessageChain.parse_obj(result[index]['messageChain'])
 
