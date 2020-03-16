@@ -51,6 +51,8 @@ class ImageType(Enum):
   Friend = "friend"
   Group = "group"
 
+TRACEBACKED = os.urandom(32)
+
 ImageRegex = {
   "group": r"(?<=\{)([0-9A-Z]{8})\-([0-9A-Z]{4})-([0-9A-Z]{4})-([0-9A-Z]{4})-([0-9A-Z]{12})(?=\}\..*?)",
   "friend": r"(?<=/)([0-9a-z]{8})\-([0-9a-z]{4})-([0-9a-z]{4})-([0-9a-z]{4})-([0-9a-z]{12})"

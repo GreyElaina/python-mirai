@@ -22,7 +22,7 @@ from mirai.event.message.models import (FriendMessage, GroupMessage,
                                         MessageItemType, MessageTypes)
 from mirai.logger import Event as EventLogger
 from mirai.logger import Session as SessionLogger
-from mirai.misc import raiser
+from mirai.misc import raiser, TRACEBACKED
 from mirai.network import fetch, session
 from mirai.protocol import MiraiProtocol
 
@@ -186,7 +186,7 @@ class Mirai(MiraiProtocol):
           raise TypeError("must be callable.")
         
         try:
-          await self.main_entrance(
+          result = await self.main_entrance(
             {
               "func": depend_func,
               "middlewares": depend.middlewares,
@@ -194,16 +194,18 @@ class Mirai(MiraiProtocol):
             },
             event_context, queue
           )
+          if result is TRACEBACKED:
+            return TRACEBACKED
         except (NameError, TypeError) as e:
           EventLogger.error(f"threw a exception by {event_context.name}, it's about Annotations Checker, please report to developer.")
           traceback.print_exc()
         except Exception as e:
-          print(e)
           if type(e) not in self.listening_exceptions:
             EventLogger.error(f"threw a exception by {event_context.name} in a depend, and it's {e}, body has been cancelled.")
             raise
           else:
             await self.throw_exception_event(event_context, queue, e)
+            return TRACEBACKED
 
     else:
       if inspect.isclass(run_body):
@@ -214,16 +216,20 @@ class Mirai(MiraiProtocol):
       else:
         callable_target = run_body
 
+    depend_handler_result = await self.signature_checkout(
+      callable_target,
+      event_context,
+      queue
+    )
+    if depend_handler_result is TRACEBACKED:
+      return TRACEBACKED
+
     translated_mapping = {
       **(await self.argument_compiler(
         callable_target,
         event_context
       )),
-      **(await self.signature_checkout(
-        callable_target,
-        event_context,
-        queue
-      ))
+      **depend_handler_result
     }
 
     try:
@@ -281,6 +287,7 @@ class Mirai(MiraiProtocol):
         raise
       else:
         await self.throw_exception_event(event_context, queue, e)
+        return TRACEBACKED
 
   async def message_polling(self, exit_signal, queue, count=10):
     while not exit_signal():
