@@ -133,8 +133,7 @@ class Mirai(MiraiProtocol):
           session=self
         )
       ))
-      EventLogger.error(f"threw a exception by {event_context.name}, Exception: {exception}")
-      traceback.print_exc()
+      EventLogger.error(f"threw a exception by {event_context.name}, Exception: {exception}, but it has been catched.")
     else:
       EventLogger.critical(f"threw a exception by {event_context.name}, Exception: {exception}, it's a exception handler.")
 
@@ -199,10 +198,13 @@ class Mirai(MiraiProtocol):
           EventLogger.error(f"threw a exception by {event_context.name}, it's about Annotations Checker, please report to developer.")
           traceback.print_exc()
         except Exception as e:
+          print(e)
           if type(e) not in self.listening_exceptions:
             EventLogger.error(f"threw a exception by {event_context.name} in a depend, and it's {e}, body has been cancelled.")
-          await self.throw_exception_event(event_context, queue, e)
-          return
+            raise
+          else:
+            await self.throw_exception_event(event_context, queue, e)
+
     else:
       if inspect.isclass(run_body):
         if hasattr(run_body, "__call__"):
@@ -276,7 +278,9 @@ class Mirai(MiraiProtocol):
     except Exception as e:
       if type(e) not in self.listening_exceptions:
         EventLogger.error(f"threw a exception by {event_context.name}, and it's {e}")
-      await self.throw_exception_event(event_context, queue, e)
+        raise
+      else:
+        await self.throw_exception_event(event_context, queue, e)
 
   async def message_polling(self, exit_signal, queue, count=10):
     while not exit_signal():
