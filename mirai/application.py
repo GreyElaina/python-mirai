@@ -133,9 +133,9 @@ class Mirai(MiraiProtocol):
           session=self
         )
       ))
-      EventLogger.error(f"threw a exception by {event_context.name}, Exception: {exception}, but it has been catched.")
+      EventLogger.error(f"threw a exception by {event_context.name}, Exception: {exception.__class__.__name__}, but it has been catched.")
     else:
-      EventLogger.critical(f"threw a exception by {event_context.name}, Exception: {exception}, it's a exception handler.")
+      EventLogger.critical(f"threw a exception by {event_context.name}, Exception: {exception.__class__.__name__}, it's a exception handler.")
 
   async def argument_compiler(self, func, event_context):
     annotations_mapping = self.get_annotations_mapping()
