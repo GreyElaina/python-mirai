@@ -1,6 +1,9 @@
 class NetworkError(Exception):
     pass
 
+class Cancelled(Exception):
+    pass
+
 class UnknownTarget(Exception):
     pass
 

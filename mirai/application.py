@@ -25,6 +25,7 @@ from mirai.logger import Session as SessionLogger
 from mirai.misc import raiser, TRACEBACKED
 from mirai.network import fetch, session
 from mirai.protocol import MiraiProtocol
+from mirai.exceptions import Cancelled
 
 class Mirai(MiraiProtocol):
   event: Dict[
@@ -196,6 +197,8 @@ class Mirai(MiraiProtocol):
           )
           if result is TRACEBACKED:
             return TRACEBACKED
+        except Cancelled:
+          return TRACEBACKED
         except (NameError, TypeError) as e:
           EventLogger.error(f"threw a exception by {event_context.name}, it's about Annotations Checker, please report to developer.")
           traceback.print_exc()
@@ -281,6 +284,8 @@ class Mirai(MiraiProtocol):
     except (NameError, TypeError) as e:
       EventLogger.error(f"threw a exception by {event_context.name}, it's about Annotations Checker, please report to developer.")
       traceback.print_exc()
+    except Cancelled:
+      return TRACEBACKED
     except Exception as e:
       if type(e) not in self.listening_exceptions:
         EventLogger.error(f"threw a exception by {event_context.name}, and it's {e}")
