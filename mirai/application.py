@@ -21,7 +21,7 @@ from mirai.event.message.models import (FriendMessage, GroupMessage,
 from mirai.logger import Event as EventLogger
 from mirai.logger import Session as SessionLogger
 from mirai.misc import raiser, TRACEBACKED
-from mirai.network import fetch, session
+from mirai.network import fetch
 from mirai.protocol import MiraiProtocol
 from mirai.exceptions import Cancelled
 
@@ -648,4 +648,3 @@ class Mirai(MiraiProtocol):
       SessionLogger.info("catched Ctrl-C, exiting..")
     finally:
       loop.run_until_complete(self.release())
-      loop.run_until_complete(session.close())

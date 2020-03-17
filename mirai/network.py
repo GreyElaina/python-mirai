@@ -8,8 +8,6 @@ import aiohttp
 
 from mirai.exceptions import NetworkError
 
-session = aiohttp.ClientSession()
-
 class fetch:
     @staticmethod
     async def http_post(url, data_map):
