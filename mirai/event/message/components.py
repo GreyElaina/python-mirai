@@ -10,7 +10,11 @@ from mirai.network import fetch, session
 from mirai.misc import ImageType
 from io import BytesIO
 from pathlib import Path
-from mirai.image import InternalImage
+from mirai.image import (
+    InternalImage, LocalImage,
+    IOImage,
+    Base64Image, BytesImage,    
+)
 import datetime
 import re
 
@@ -130,8 +134,8 @@ class Image(BaseMessageComponent):
         return f"/{self.imageId.lower()}"
 
     @staticmethod
-    def fromFileSystem(path: T.Union[Path, str]) -> InternalImage:
-        return InternalImage(path)
+    def fromFileSystem(path: T.Union[Path, str]) -> LocalImage:
+        return LocalImage(path)
 
     async def toBytes(self, chunk_size=256) -> BytesIO:
         async with session.get(self.url) as response:
@@ -142,6 +146,18 @@ class Image(BaseMessageComponent):
                     break
                 result.write(chunk)
         return result
+
+    @staticmethod
+    def fromBytes(data) -> BytesImage:
+        return BytesImage(data)
+
+    @staticmethod
+    def fromBase64(base64_str) -> Base64Image:
+        return Base64Image(base64_str)
+
+    @staticmethod
+    def fromIO(IO) -> IOImage:
+        return IOImage(IO)
 
 class Xml(BaseMessageComponent):
     type: MessageComponentTypes = "Xml"
