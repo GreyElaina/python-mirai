@@ -1,11 +1,11 @@
 from . import InternalEvent
 from pydantic import BaseModel
-from typing import Any
+from mirai import Mirai
 
 class UnexpectedException(BaseModel):
     error: Exception
     event: InternalEvent
-    application: Any
+    application: Mirai
 
     class Config:
         arbitrary_types_allowed = True

@@ -15,8 +15,6 @@ from mirai.depend import Depend
 from mirai.entities.friend import Friend
 from mirai.entities.group import Group, Member
 from mirai.event import ExternalEvent, ExternalEventTypes, InternalEvent
-from mirai.event.builtins import UnexpectedException
-from mirai.event.external.enums import ExternalEvents
 from mirai.event.message import MessageChain, components
 from mirai.event.message.models import (FriendMessage, GroupMessage,
                                         MessageItemType, MessageTypes)
@@ -124,6 +122,7 @@ class Mirai(MiraiProtocol):
     return receiver_warpper
 
   async def throw_exception_event(self, event_context, queue, exception):
+    from .event.builtins import UnexpectedException
     if event_context.name != "UnexpectedException":
       #print("error: by pre:", event_context.name)
       await queue.put(InternalEvent(
@@ -131,7 +130,7 @@ class Mirai(MiraiProtocol):
         body=UnexpectedException(
           error=exception,
           event=event_context,
-          session=self
+          application=self
         )
       ))
       EventLogger.error(f"threw a exception by {event_context.name}, Exception: {exception.__class__.__name__}, but it has been catched.")
@@ -323,6 +322,7 @@ class Mirai(MiraiProtocol):
         )
 
   async def ws_event_receiver(self, exit_signal, queue):
+    from mirai.event.external.enums import ExternalEvents
     await self.checkWebsocket(force=True)
     async with aiohttp.ClientSession() as session:
       async with session.ws_connect(
@@ -385,6 +385,7 @@ class Mirai(MiraiProtocol):
             ))
   
   def getRestraintMapping(self):
+    from mirai.event.external.enums import ExternalEvents
     def warpper(name, event_context):
       return name == event_context.name
     return {
@@ -485,6 +486,8 @@ class Mirai(MiraiProtocol):
             self.checkDependencies(depend)
 
   def exception_handler(self, exception_class=None):
+    from .event.builtins import UnexpectedException
+    from mirai.event.external.enums import ExternalEvents
     def receiver_warpper(
       func: Callable[[Union[FriendMessage, GroupMessage], "Session"], Awaitable[Any]]
     ):
@@ -517,6 +520,7 @@ class Mirai(MiraiProtocol):
     return receiver_warpper
 
   def gen_event_anno(self):
+    from mirai.event.external.enums import ExternalEvents
     result = {}
     for event_name, event_class in ExternalEvents.__members__.items():
       def warpper(name, event_context):
@@ -558,6 +562,8 @@ class Mirai(MiraiProtocol):
     }
 
   def getEventCurrentName(self, event_value):
+    from .event.builtins import UnexpectedException
+    from mirai.event.external.enums import ExternalEvents
     if inspect.isclass(event_value) and issubclass(event_value, ExternalEvent): # subclass
       return event_value.__name__
     elif isinstance(event_value, ( # normal class
@@ -584,6 +590,7 @@ class Mirai(MiraiProtocol):
     return [self.getEventCurrentName(i) for i in self.event.keys()]
 
   def subroutine(self, func: Callable[["Mirai"], Any]):
+    from .event.builtins import UnexpectedException
     async def warpper(app: "Mirai"):
       try:
         return await func(app)
@@ -593,7 +600,7 @@ class Mirai(MiraiProtocol):
           body=UnexpectedException(
             error=e,
             event=None,
-            session=self
+            application=self
           )
         ))
     self.subroutines.append(warpper)

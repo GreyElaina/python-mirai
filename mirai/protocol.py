@@ -8,7 +8,6 @@ import json
 from mirai.event.message.models import FriendMessage, GroupMessage, BotMessage, MessageTypes
 
 from mirai.event import ExternalEvent
-from mirai.event.external.enums import ExternalEvents
 from mirai.entities.friend import Friend
 from mirai.entities.group import Group, GroupSetting, Member, MemberChangeableSetting
 from mirai.event.message.chain import MessageChain
@@ -178,6 +177,7 @@ class MiraiProtocol:
 
     @edge_case_handler
     async def fetchMessage(self, count: int) -> T.List[T.Union[FriendMessage, GroupMessage, ExternalEvent]]:
+        from mirai.event.external.enums import ExternalEvents
         result = assertOperatorSuccess(
             await fetch.http_get(f"{self.baseurl}/fetchMessage", {
                 "sessionKey": self.session_key,
