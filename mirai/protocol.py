@@ -88,7 +88,7 @@ class MiraiProtocol:
         message: T.Union[
             MessageChain,
             BaseMessageComponent,
-            T.List[BaseMessageComponent],
+            T.List[T.Union[BaseMessageComponent, InternalImage]],
             str
         ]
     ) -> BotMessage:
@@ -107,7 +107,7 @@ class MiraiProtocol:
         message: T.Union[
             MessageChain,
             BaseMessageComponent,
-            T.List[BaseMessageComponent],
+            T.List[T.Union[BaseMessageComponent, InternalImage]],
             str
         ],
         quoteSource: T.Union[int, components.Source]=None
@@ -361,7 +361,7 @@ class MiraiProtocol:
         message: T.Union[
             MessageChain,
             BaseMessageComponent,
-            T.List[BaseMessageComponent],
+            T.List[T.Union[BaseMessageComponent, InternalImage]],
             str
         ]):
         if isinstance(message, MessageChain):
