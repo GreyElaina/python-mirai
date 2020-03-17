@@ -3,7 +3,7 @@ from mirai.misc import (
     ImageType
 )
 from mirai.face import QQFaces
-from mirai.exceptions import NetworkError
+from mirai.exceptions import NetworkError, Cancelled
 from mirai.depend import Depend
 
 import mirai.event.message.base
