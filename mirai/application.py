@@ -646,17 +646,17 @@ class Mirai(MiraiProtocol):
     exit_signal = False
     loop.run_until_complete(self.enable_session())
     if not no_polling:
-      if not self.useWebsocket:
-        SessionLogger.warning("http's fetchMessage is disabled in mirai-api-http 1.2.1(it's a bug :P).")
-        SessionLogger.warning("so, you can use WebSocket.")
-        SessionLogger.warning("if it throw a unexpected error, you should call the httpapi's author.")
-        loop.create_task(self.message_polling(lambda: exit_signal, queue))
-      else:
-        SessionLogger.warning("you are using WebSocket, it's a experimental method.")
-        SessionLogger.warning("but, websocket is remember way to fetch message and event,")
-        SessionLogger.warning("and http's fetchMessage is disabled when websocket is enabled")
-        SessionLogger.warning("if it throw a unexpected error, you can use issues on github.")
-        loop.create_task(self.ws_event_receiver(lambda: exit_signal, queue))
+      # check ws status
+      try:
+        loop.run_until_complete(self.checkWebsocket())
+      except ValueError:
+        # should use http, but we can change it.
+        if self.useWebsocket:
+          loop.create_task(self.ws_event_receiver(lambda: exit_signal, queue))
+        else:
+          # change.
+          loop.run_until_complete(self.setConfig(enableWebsocket=False))
+          loop.create_task(self.message_polling(lambda: exit_signal, queue))
       loop.create_task(self.event_runner(lambda: exit_signal, queue))
     
     if not no_forever:
