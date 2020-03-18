@@ -2,7 +2,6 @@ import typing as T
 from mirai.misc import findKey, printer, ImageRegex, getMatchedString
 from mirai.event.message.base import BaseMessageComponent, MessageComponentTypes
 from pydantic import Field, validator, HttpUrl
-from mirai.network import session
 from io import BytesIO
 from pathlib import Path
 from mirai.image import (
@@ -10,6 +9,7 @@ from mirai.image import (
     IOImage,
     Base64Image, BytesImage,    
 )
+from aiohttp import ClientSession
 import datetime
 
 __all__ = [
@@ -131,14 +131,15 @@ class Image(BaseMessageComponent):
         return LocalImage(path)
 
     async def toBytes(self, chunk_size=256) -> BytesIO:
-        async with session.get(self.url) as response:
-            result = BytesIO()
-            while True:
-                chunk = await response.content.read(chunk_size)
-                if not chunk:
-                    break
-                result.write(chunk)
-        return result
+        async with ClientSession() as session:
+            async with session.get(self.url) as response:
+                result = BytesIO()
+                while True:
+                    chunk = await response.content.read(chunk_size)
+                    if not chunk:
+                        break
+                    result.write(chunk)
+            return result
 
     @staticmethod
     def fromBytes(data) -> BytesImage:
