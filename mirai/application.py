@@ -623,6 +623,13 @@ class Mirai(MiraiProtocol):
     else:
       return False
 
+  @staticmethod
+  async def run_func(func, *args, **kwargs):
+    if inspect.iscoroutinefunction(func):
+      await func(*args, **kwargs)
+    else:
+      func(*args, **kwargs)
+
   def onStage(self, stage_name):
     def warpper(func):
       self.lifecycle.setdefault(stage_name, [])
@@ -658,31 +665,19 @@ class Mirai(MiraiProtocol):
 
     try:
       for start_callable in self.lifecycle['start']:
-        if inspect.iscoroutinefunction(start_callable):
-          loop.run_until_complete(start_callable(self))
-        else:
-          start_callable(self)
+        loop.run_until_complete(self.run_func(start_callable, self))
 
       for around_callable in self.lifecycle['around']:
-        if inspect.iscoroutinefunction(around_callable):
-          loop.run_until_complete(around_callable(self))
-        else:
-          around_callable(self)
+        loop.run_until_complete(self.run_func(around_callable, self))
 
       loop.run_forever()
     except KeyboardInterrupt:
       SessionLogger.info("catched Ctrl-C, exiting..")
     finally:
       for around_callable in self.lifecycle['around']:
-        if inspect.iscoroutinefunction(around_callable):
-          loop.run_until_complete(around_callable(self))
-        else:
-          around_callable(self)
+        loop.run_until_complete(self.run_func(around_callable, self))
 
       for end_callable in self.lifecycle['end']:
-        if inspect.iscoroutinefunction(end_callable):
-          loop.run_until_complete(end_callable(self))
-        else:
-          end_callable(self)
+        loop.run_until_complete(self.run_func(end_callable, self))
 
       loop.run_until_complete(self.release())
