@@ -647,6 +647,11 @@ class Mirai(MiraiProtocol):
     loop.run_until_complete(self.enable_session())
     if not no_polling:
       # check ws status
+      if self.useWebsocket:
+        SessionLogger.info("event receive method: websocket")
+      else:
+        SessionLogger.info("event receive method: http polling")
+
       try:
         loop.run_until_complete(self.checkWebsocket())
       except ValueError:
@@ -655,6 +660,7 @@ class Mirai(MiraiProtocol):
           loop.create_task(self.ws_event_receiver(lambda: exit_signal, queue))
         else:
           # change.
+          SessionLogger.warning("found unexpect config, we will modify it.")
           loop.run_until_complete(self.setConfig(enableWebsocket=False))
           loop.create_task(self.message_polling(lambda: exit_signal, queue))
       loop.create_task(self.event_runner(lambda: exit_signal, queue))
