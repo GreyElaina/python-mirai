@@ -70,7 +70,7 @@ class Mirai(MiraiProtocol):
       else:
         raise ValueError("invaild url")
     else:
-      if all([host, port, authKey, qq]): 
+      if all([host, port, authKey, qq]):
         self.baseurl = f"http://{host}:{port}"
         self.auth_key = authKey
         self.qq = qq
@@ -99,8 +99,8 @@ class Mirai(MiraiProtocol):
     return self
 
   def receiver(self, event_name,
-      dependencies: List[Depend] = [],
-      use_middlewares: List[Callable] = []
+      dependencies: List[Depend] = None,
+      use_middlewares: List[Callable] = None
     ):
     def receiver_warpper(
       func: Callable[[Union[FriendMessage, GroupMessage], "Session"], Awaitable[Any]]
@@ -110,8 +110,8 @@ class Mirai(MiraiProtocol):
 
       protocol = {
         "func": func,
-        "dependencies": dependencies,
-        "middlewares": use_middlewares
+        "dependencies": dependencies or [],
+        "middlewares": use_middlewares or []
       }
       
       if event_name not in self.event:
@@ -151,14 +151,16 @@ class Mirai(MiraiProtocol):
     }
     return translated_mapping
 
-  def signature_getter(self, func):
+  @staticmethod
+  def signature_getter(func):
     "获取函数的默认值列表"
     return {k: v.default \
       for k, v in dict(inspect.signature(func).parameters).items() \
         if v.default != inspect._empty}
 
-  def signature_checker(self, func):
-    signature_mapping = self.signature_getter(func)
+  @staticmethod
+  def signature_checker(func):
+    signature_mapping = Mirai.signature_getter(func)
     for i in signature_mapping.values():
       if not isinstance(i, Depend):
         raise TypeError("you must use a Depend to patch the default value.")

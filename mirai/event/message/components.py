@@ -1,22 +1,16 @@
-from enum import Enum
 import typing as T
-from uuid import UUID
-from mirai.misc import findKey, printer, ImageRegex, getMatchedString, randomRangedNumberString as rd
-from mirai.face import QQFaces
+from mirai.misc import findKey, printer, ImageRegex, getMatchedString
 from mirai.event.message.base import BaseMessageComponent, MessageComponentTypes
 from pydantic import Field, validator, HttpUrl
-from pydantic.generics import GenericModel
-from mirai.network import fetch, session
-from mirai.misc import ImageType
+from mirai.network import session
 from io import BytesIO
 from pathlib import Path
 from mirai.image import (
-    InternalImage, LocalImage,
+    LocalImage,
     IOImage,
     Base64Image, BytesImage,    
 )
 import datetime
-import re
 
 __all__ = [
     "Plain",
@@ -66,8 +60,7 @@ class Quote(BaseMessageComponent):
             id=id,
             groupId=groupId,
             senderId=senderId,
-            origin=origin,
-            type="Quote"
+            origin=origin
         )
 
     def toString(self):
@@ -79,7 +72,7 @@ class At(BaseMessageComponent):
     display: T.Optional[str] = None
 
     def __init__(self, target, display=None, type="At"):
-        super().__init__(target=target, display=display, type=type)
+        super().__init__(target=target, display=display)
 
     def toString(self):
         return f"[At::target={self.target}]"
@@ -88,7 +81,7 @@ class AtAll(BaseMessageComponent):
     type: MessageComponentTypes = "AtAll"
 
     def __init__(self, type="AtAll"):
-        super().__init__(type="AtAll")
+        super().__init__()
 
     def toString(self):
         return f"[AtAll]"
@@ -99,7 +92,7 @@ class Face(BaseMessageComponent):
     name: T.Optional[str]
 
     def __init__(self, faceId, name=None, type="Face"):
-        super().__init__(faceId=faceId, name=name, type=type)
+        super().__init__(faceId=faceId, name=name)
 
     def toString(self):
         return f"[Face::name={self.name}]"
@@ -122,7 +115,7 @@ class Image(BaseMessageComponent):
             return v
 
     def __init__(self, imageId, url=None, type="Image"):
-        super().__init__(imageId=imageId, url=url, type="Image")
+        super().__init__(imageId=imageId, url=url)
 
     def toString(self):
         return f"[Image::{self.imageId}]"
