@@ -32,7 +32,8 @@ class Mirai(MiraiProtocol):
   subroutines: List[Callable] = []
   lifecycle: Dict[str, List[Callable]] = {
     "start": [],
-    "end": []
+    "end": [],
+    "around": []
   }
   useWebsocket = False
   listening_exceptions: List[Exception] = []
@@ -662,10 +663,22 @@ class Mirai(MiraiProtocol):
         else:
           start_callable(self)
 
+      for around_callable in self.lifecycle['around']:
+        if inspect.iscoroutinefunction(around_callable):
+          loop.run_until_complete(around_callable(self))
+        else:
+          around_callable(self)
+
       loop.run_forever()
     except KeyboardInterrupt:
       SessionLogger.info("catched Ctrl-C, exiting..")
     finally:
+      for around_callable in self.lifecycle['around']:
+        if inspect.iscoroutinefunction(around_callable):
+          loop.run_until_complete(around_callable(self))
+        else:
+          around_callable(self)
+
       for end_callable in self.lifecycle['end']:
         if inspect.iscoroutinefunction(end_callable):
           loop.run_until_complete(end_callable(self))
