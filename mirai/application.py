@@ -30,6 +30,10 @@ class Mirai(MiraiProtocol):
     str, List[Callable[[Any], Awaitable]]
   ] = {}
   subroutines: List[Callable] = []
+  lifecycle: Dict[str, List[Callable]] = {
+    "start": [],
+    "end": []
+  }
   useWebsocket = False
   listening_exceptions: List[Exception] = []
 
@@ -618,6 +622,13 @@ class Mirai(MiraiProtocol):
     else:
       return False
 
+  def onStage(self, stage_name):
+    def warpper(func):
+      self.lifecycle.setdefault(stage_name, [])
+      self.lifecycle[stage_name].append(func)
+      return func
+    return warpper
+
   def run(self, loop=None, no_polling=False, no_forever=False):
     self.checkEventBodyAnnotations()
     self.checkEventDependencies()
@@ -645,8 +656,20 @@ class Mirai(MiraiProtocol):
         loop.create_task(i(self))
 
     try:
+      for start_callable in self.lifecycle['start']:
+        if inspect.iscoroutinefunction(start_callable):
+          loop.run_until_complete(start_callable(self))
+        else:
+          start_callable(self)
+
       loop.run_forever()
     except KeyboardInterrupt:
       SessionLogger.info("catched Ctrl-C, exiting..")
     finally:
+      for end_callable in self.lifecycle['end']:
+        if inspect.iscoroutinefunction(end_callable):
+          loop.run_until_complete(end_callable(self))
+        else:
+          end_callable(self)
+
       loop.run_until_complete(self.release())
