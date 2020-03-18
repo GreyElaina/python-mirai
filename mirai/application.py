@@ -660,7 +660,7 @@ class Mirai(MiraiProtocol):
           loop.create_task(self.ws_event_receiver(lambda: exit_signal, queue))
         else:
           # change.
-          SessionLogger.warning("found unexpect config, we will modify it.")
+          SessionLogger.warning("catched wrong config: enableWebsocket=true, we will modify it on launch.")
           loop.run_until_complete(self.setConfig(enableWebsocket=False))
           loop.create_task(self.message_polling(lambda: exit_signal, queue))
       loop.create_task(self.event_runner(lambda: exit_signal, queue))
