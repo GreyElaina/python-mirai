@@ -661,9 +661,6 @@ class Mirai(MiraiProtocol):
           loop.run_until_complete(self.setConfig(enableWebsocket=True))
           loop.create_task(self.ws_event_receiver(lambda: exit_signal, queue))
         else:
-          # change.
-          SessionLogger.warning("catched wrong config: enableWebsocket=true, we will modify it on launch.")
-          loop.run_until_complete(self.setConfig(enableWebsocket=False))
           loop.create_task(self.message_polling(lambda: exit_signal, queue))
       else: # we can use websocket, it's fine
         if self.useWebsocket:
