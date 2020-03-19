@@ -613,14 +613,7 @@ class Mirai(MiraiProtocol):
     return func
 
   async def checkWebsocket(self, force=False):
-    if self.useWebsocket:
-      if not (await self.getConfig())["enableWebsocket"]:
-        if not force:
-          raise ValueError("websocket is disabled.")
-        await self.setConfig(enableWebsocket=True)
-      return True
-    else:
-      return False
+    return (await self.getConfig())["enableWebsocket"]
 
   @staticmethod
   async def run_func(func, *args, **kwargs):
@@ -651,9 +644,8 @@ class Mirai(MiraiProtocol):
       else:
         SessionLogger.info("event receive method: http polling")
 
-      try:
-        loop.run_until_complete(self.checkWebsocket())
-      except ValueError: # we can use http, not ws.
+      result = loop.run_until_complete(self.checkWebsocket())
+      if not result: # we can use http, not ws.
         # should use http, but we can change it.
         if self.useWebsocket:
           SessionLogger.warning("catched wrong config: enableWebsocket=false, we will modify it on launch.")
