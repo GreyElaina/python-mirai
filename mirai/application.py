@@ -330,7 +330,6 @@ class Mirai(MiraiProtocol):
 
   async def ws_event_receiver(self, exit_signal, queue):
     from mirai.event.external.enums import ExternalEvents
-    print("?")
     async with aiohttp.ClientSession() as session:
       async with session.ws_connect(
         f"{self.baseurl}/all?sessionKey={self.session_key}"
