@@ -99,7 +99,7 @@ class Face(BaseMessageComponent):
 
 class Image(BaseMessageComponent):
     type: MessageComponentTypes = "Image"
-    imageId: str
+    imageId: T.Optional[str]
     url: T.Optional[HttpUrl] = None
 
     @validator("imageId", always=True, pre=True)
