@@ -371,13 +371,18 @@ class MiraiProtocol:
         elif isinstance(message, (tuple, list)):
             result = []
             for i in message:
-                if not isinstance(i, InternalImage):
-                    result.append(json.loads(i.json()))
-                else:
+                if isinstance(i, InternalImage):
                     result.append({
                         "type": "Image",
                         "imageId": (await self.handleInternalImageAsGroup(i)).asGroupImage()
                     })
+                elif isinstance(i, components.Image):
+                    result.append({
+                        "type": "Image",
+                        "imageId": i.asGroupImage()
+                    })
+                else:
+                    result.append(json.loads(i.json()))
             return result
         elif isinstance(message, str):
             return [json.loads(components.Plain(text=message).json())]
