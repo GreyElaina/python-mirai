@@ -27,7 +27,7 @@ class Plain(BaseMessageComponent):
     type: MessageComponentTypes = "Plain"
     text: str
 
-    def __init__(self, text, type="Plain"):
+    def __init__(self, text, **_):
         super().__init__(text=text, type="Plain")
 
     def toString(self):
@@ -55,7 +55,7 @@ class Quote(BaseMessageComponent):
     def origin_formater(cls, v):
         return MessageChain.parse_obj(v)
 
-    def __init__(self, id: int, groupId: int, senderId: int, origin: int, type="Quote"):
+    def __init__(self, id: int, groupId: int, senderId: int, origin: int, **_):
         super().__init__(
             id=id,
             groupId=groupId,
@@ -71,7 +71,7 @@ class At(BaseMessageComponent):
     target: int
     display: T.Optional[str] = None
 
-    def __init__(self, target, display=None, type="At"):
+    def __init__(self, target, display=None, **_):
         super().__init__(target=target, display=display)
 
     def toString(self):
@@ -80,7 +80,7 @@ class At(BaseMessageComponent):
 class AtAll(BaseMessageComponent):
     type: MessageComponentTypes = "AtAll"
 
-    def __init__(self, type="AtAll"):
+    def __init__(self, **_):
         super().__init__()
 
     def toString(self):
@@ -91,7 +91,7 @@ class Face(BaseMessageComponent):
     faceId: int
     name: T.Optional[str]
 
-    def __init__(self, faceId, name=None, type="Face"):
+    def __init__(self, faceId, name=None, **_):
         super().__init__(faceId=faceId, name=name)
 
     def toString(self):
@@ -114,7 +114,7 @@ class Image(BaseMessageComponent):
         else:
             return v
 
-    def __init__(self, imageId, url=None, type="Image"):
+    def __init__(self, imageId, url=None, **_):
         super().__init__(imageId=imageId, url=url)
 
     def toString(self):
@@ -164,14 +164,14 @@ class Json(BaseMessageComponent):
     type: MessageComponentTypes = "Json"
     Json: dict = Field(..., alias="json")
 
-    def __init__(self, json: dict, type="Json"):
+    def __init__(self, json: dict, **_):
         super().__init__(Json=json)
 
 class App(BaseMessageComponent):
     type: MessageComponentTypes = "App"
     content: str
 
-    def __init__(self, content: str, type="App"):
+    def __init__(self, content: str, **_):
         super().__init__(content=content)
 
 class Unknown(BaseMessageComponent):
