@@ -330,7 +330,7 @@ class Mirai(MiraiProtocol):
 
   async def ws_event_receiver(self, exit_signal, queue):
     from mirai.event.external.enums import ExternalEvents
-    await self.checkWebsocket(force=True)
+    print("?")
     async with aiohttp.ClientSession() as session:
       async with session.ws_connect(
         f"{self.baseurl}/all?sessionKey={self.session_key}"
@@ -654,12 +654,19 @@ class Mirai(MiraiProtocol):
 
       try:
         loop.run_until_complete(self.checkWebsocket())
-      except ValueError:
+      except ValueError: # we can use http, not ws.
         # should use http, but we can change it.
         if self.useWebsocket:
           loop.create_task(self.ws_event_receiver(lambda: exit_signal, queue))
         else:
           # change.
+          SessionLogger.warning("catched wrong config: enableWebsocket=true, we will modify it on launch.")
+          loop.run_until_complete(self.setConfig(enableWebsocket=False))
+          loop.create_task(self.message_polling(lambda: exit_signal, queue))
+      else: # we can use websocket, it's fine
+        if self.useWebsocket:
+          loop.create_task(self.ws_event_receiver(lambda: exit_signal, queue))
+        else:
           SessionLogger.warning("catched wrong config: enableWebsocket=true, we will modify it on launch.")
           loop.run_until_complete(self.setConfig(enableWebsocket=False))
           loop.create_task(self.message_polling(lambda: exit_signal, queue))
@@ -679,6 +686,8 @@ class Mirai(MiraiProtocol):
       loop.run_forever()
     except KeyboardInterrupt:
       SessionLogger.info("catched Ctrl-C, exiting..")
+    except Exception as e:
+      traceback.print_exc()
     finally:
       for around_callable in self.lifecycle['around']:
         loop.run_until_complete(self.run_func(around_callable, self))
