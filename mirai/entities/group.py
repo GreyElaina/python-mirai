@@ -1,8 +1,6 @@
 from enum import Enum
 from dataclasses import dataclass
 from pydantic import BaseModel
-from mirai.network import session
-from io import BytesIO
 
 class Permission(Enum):
     Member = "MEMBER"

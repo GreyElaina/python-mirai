@@ -1,8 +1,6 @@
 from uuid import UUID
 from pydantic import BaseModel
 from typing import Optional
-from mirai.network import session
-from io import BytesIO
 
 class Friend(BaseModel):
     id: int
