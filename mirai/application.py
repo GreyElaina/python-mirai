@@ -657,6 +657,8 @@ class Mirai(MiraiProtocol):
       except ValueError: # we can use http, not ws.
         # should use http, but we can change it.
         if self.useWebsocket:
+          SessionLogger.warning("catched wrong config: enableWebsocket=false, we will modify it on launch.")
+          loop.run_until_complete(self.setConfig(enableWebsocket=True))
           loop.create_task(self.ws_event_receiver(lambda: exit_signal, queue))
         else:
           # change.
