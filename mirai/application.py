@@ -629,6 +629,18 @@ class Mirai(MiraiProtocol):
       return func
     return warpper
 
+  def include_others(self, *args: List["Mirai"]):
+    for other in args:
+      for event_name, items in other.event.items():
+        if event_name in self.event:
+          self.event[event_name] += items
+        else:
+          self.event[event_name] = items.copy()
+      self.subroutines = other.subroutines
+      for life_name, items in other.lifecycle:
+        self.lifecycle[life_name] += items
+      self.listening_exceptions += other.listening_exceptions
+
   def run(self, loop=None, no_polling=False, no_forever=False):
     self.checkEventBodyAnnotations()
     self.checkEventDependencies()

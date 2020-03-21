@@ -9,7 +9,7 @@ from mirai import MessageChain, Cancelled, Image, Mirai, At
 import re
 from typing import List
 
-def Regex(pattern):
+def RegexMatch(pattern):
     async def regex_depend_wrapper(message: MessageChain):
         if not re.match(pattern, message.toString()):
             raise Cancelled

@@ -16,10 +16,18 @@ class FriendMessage(BaseModel):
     messageChain: T.Optional[MessageChain]
     sender: Friend
 
+    def toString(self):
+        if self.messageChain:
+            return self.messageChain.toString()
+
 class GroupMessage(BaseModel):
     type: MessageItemType = "GroupMessage"
     messageChain: T.Optional[MessageChain]
     sender: Member
+
+    def toString(self):
+        if self.messageChain:
+            return self.messageChain.toString()
 
 class BotMessage(BaseModel):
     type: MessageItemType = 'BotMessage'
