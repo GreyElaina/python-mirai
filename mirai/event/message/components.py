@@ -7,8 +7,9 @@ from pathlib import Path
 from mirai.image import (
     LocalImage,
     IOImage,
-    Base64Image, BytesImage,    
+    Base64Image, BytesImage,
 )
+from mirai.logger import Protocol as ProtocolLogger
 from aiohttp import ClientSession
 import datetime
 
@@ -28,6 +29,8 @@ class Plain(BaseMessageComponent):
     text: str
 
     def __init__(self, text, **_):
+        if len(text) > 128:
+            ProtocolLogger.warn(f"mirai does not support for long string: now its length is {len(text)}")
         super().__init__(text=text, type="Plain")
 
     def toString(self):
