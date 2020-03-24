@@ -137,8 +137,6 @@ def secure_filename(filename):
 
 def edge_case_handler(func):
   async def wrapper(self, *args, **kwargs):
-    client_connect_error_delay = 0
-
     while True:
       try:
         return await func(self, *args, **kwargs)
@@ -155,13 +153,8 @@ def edge_case_handler(func):
         Protocol.error("a unexpected session error, we will deal with it.")
         await self.enable_session()
       except aiohttp.client_exceptions.ClientError:
-        await asyncio.sleep(client_connect_error_delay)
-        client_connect_error_delay += 5
-        if client_connect_error_delay >= 40:
-          Protocol.error("cannot retry any more, exiting....")
-          traceback.print_exc()
-          exit(2)
-        Protocol.error(f"cannot connect to the headless client, will retry after {client_connect_error_delay} seconds.")
+        Protocol.error(f"cannot connect to the headless client, will retry after 5 seconds.")
+        await asyncio.sleep(5)
         continue
       except exceptions.CallDevelopers:
         Protocol.error("emmm, please contect me at github.")
