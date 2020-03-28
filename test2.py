@@ -10,12 +10,9 @@ qq = 208924405
 app = Mirai(f"mirai://localhost:8070/?authKey={authKey}&qq={qq}", websocket=True)
 cm = CommandManager(app, command_prefix=".")
 
-test_command = Command("test {na}")
-@test_command.action
+@cm.Mark("test {na:Image} fq")
 async def t(app: Mirai, na):
-    print(app, na)
-
-cm.registerCommand(test_command)
+    pass
 
 @app.receiver("GroupMessage")
 async def event_gm(app: Mirai, message: MessageChain, group: Group, member: Member):

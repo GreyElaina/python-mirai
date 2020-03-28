@@ -2,7 +2,7 @@ from mirai.application import Mirai
 from mirai.event.message.chain import MessageChain
 from mirai import (
   Member, Friend,
-  Group, Plain,
+  Group, Plain, Depend,
   
   At, Face, Image, AtAll, Source, Quote,
 
@@ -27,7 +27,7 @@ import asyncio
 
 class CommandManager:
   main_application: Mirai
-  command_prefix: str = "/"
+  command_prefix: str = ">"
   matches_commands: List[Command] = []
 
   def __init__(self,
@@ -91,7 +91,10 @@ class CommandManager:
             if compile_result.fixed:
               SessionLogger.warn(f"catched a unnamed argument, it will be passed: {compile_result.fixed} on {gm}")
             
-            checker_named_value = [i.strip() in mapping for i in compile_result.named.values()]
+            checker_named_value = [
+              (i.strip() in mapping) if isinstance(i, str) \
+                else False \
+                  for i in compile_result.named.values()]
             if True in checker_named_value:
               wrong_key = list(compile_result.named.keys())[
                 checker_named_value.index(True)
@@ -111,7 +114,7 @@ class CommandManager:
                 body=gm
               ), compile_result.named
             ))
-            
+            break
 
   async def friend_message_handler(self,
     app: Mirai, message: MessageChain,
@@ -141,7 +144,10 @@ class CommandManager:
             if compile_result.fixed:
               SessionLogger.warn(f"catched a unnamed argument, it will be passed: {compile_result.fixed} on {fm}")
             
-            checker_named_value = [i.strip() in mapping for i in compile_result.named.values()]
+            checker_named_value = [
+              (i.strip() in mapping) if isinstance(i, str) \
+                else False \
+                  for i in compile_result.named.values()]
             if True in checker_named_value:
               wrong_key = list(compile_result.named.keys())[
                 checker_named_value.index(True)
@@ -161,11 +167,13 @@ class CommandManager:
                 body=fm
               ), compile_result.named
             ))
+            break
 
   async def mirai_console_builtins_wrapper(self):
     """不应该在 prefix != / 时启动.  
     专门用于处理当 Sender 被指定为 Manager 时无法使用常规的 FriendMessage/GroupMessage
-    进行指令监听的情况.
+    进行指令监听的情况.  
+    由于目前, httpapi command 接口并非完全完善, 故暂时不兼容.
     """
     async with aiohttp.ClientSession() as session:
       async with session.ws_connect(
@@ -178,6 +186,42 @@ class CommandManager:
             continue
           if received_data:
             message_string = " ".join([received_data['name'], *received_data['args']])
+
+  def Action(self, 
+    match_string: str,
+    aliases: List[str] = [],
+    priority: int = 0,
+    dependencies: List[Depend] = [],
+    middlewares: List = []
+  ):
+    new_command = Command(
+      match_string,
+      aliases, priority,
+      dependencies, middlewares
+    )
+    self.registerCommand(new_command)
+    self.sortCommands()
+    return new_command
+
+  def Mark(self, 
+    match_string: str,
+    aliases: List[str] = [],
+    priority: int = 0,
+    dependencies: List[Depend] = [],
+    middlewares: List = []
+  ):
+    new_command = Command(
+      match_string,
+      aliases, priority,
+      dependencies, middlewares
+    )
+    self.registerCommand(new_command)
+    self.sortCommands()
+    def register(func):
+      new_command.step()(func)
+      return func
+    return register
+    
 
   @staticmethod
   def compileSignature(signature_string: str, target_string: str, mapping: dict):

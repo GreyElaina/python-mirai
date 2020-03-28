@@ -13,24 +13,33 @@ class Command:
   dependencies: List[Depend] = []
   middlewares: List = []
 
+  ways : List[str]
+
   def __init__(self,
     match_string: str,
     aliases: List[str] = [],
     priority: int = 0,
     dependencies: List[Depend] = [],
-    middlewares: List = []
+    middlewares: List = [],
+    ways: List[str] = None
   ):
     self.priority = priority
     self.match_string = match_string
     self.aliases = aliases
     self.dependencies = dependencies
     self.middlewares = middlewares
+    self.ways = ways or [
+      "FriendMessage",
+      "GroupMessage"
+    ]
   
-  def action(self, func):
-    if not callable(func):
-      raise TypeError("an action must be callable.")
-    self.actions.append(func)
-    return func
+  def step(self, *args, **kwargs):
+    def step_register(func):
+      if not callable(func):
+        raise TypeError("an action must be callable.")
+      self.actions.append(func)
+      return func
+    return step_register
 
   @staticmethod
   async def runner(func, *args, **kwargs):
