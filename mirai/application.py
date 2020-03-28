@@ -38,7 +38,7 @@ class Mirai(MiraiProtocol):
   useWebsocket = False
   listening_exceptions: List[Exception] = []
 
-  def __init__(self, 
+  def __init__(self,
     url: Optional[str] = None,
 
     host: Optional[str] = None,

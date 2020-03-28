@@ -3,6 +3,8 @@ import typing as T
 from datetime import timedelta
 from pathlib import Path
 from uuid import UUID
+import pydantic
+import traceback
 import json
 
 from mirai.event.message.models import FriendMessage, GroupMessage, BotMessage, MessageTypes
