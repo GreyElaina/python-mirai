@@ -22,6 +22,9 @@ from mirai.image import InternalImage
 from mirai.logger import Protocol as ProtocolLogger
 import threading
 
+# 与 mirai 的 Command 部分将由 mirai.command 模块进行魔法支持,
+# 并尽量的兼容 mirai-console 的内部机制.
+
 class MiraiProtocol:
     qq: int
     baseurl: str
@@ -206,6 +209,11 @@ class MiraiProtocol:
             traceback.print_exc()
             raise
         return result
+
+    @protocol_log
+    @edge_case_handler
+    async def getManagers(self):
+        return assertOperatorSuccess(await fetch.http_get(f"{self.baseurl}/managers"))
 
     @protocol_log
     @edge_case_handler

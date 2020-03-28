@@ -1,41 +1,56 @@
 from typing import (
-    List, Callable
+  List, Callable
 )
 import inspect
+from mirai import Depend
 
 class Command:
-    match_string: str # 主匹配
-    aliases: List[str] = [] # 一堆匹配
-    actions: List[Callable] = [] # 类似js的promise链
-    priority: int = 0 # 优先级, 越大越会捕捉.
+  match_string: str # 主匹配
+  aliases: List[str] = [] # 一堆匹配, 但都类似于主匹配
 
-    def __init__(self,
-        match_string: str,
-        aliases: List[str] = []
-    ):
-        self.match_string = match_string
-        self.aliases = aliases
-    
-    def action(self, func):
-        if not callable(func):
-            raise TypeError("an action must be callable.")
-        self.actions.append(func)
-        return func
+  actions: List[Callable] = [] # 类似js的promise链
+  priority: int = 0 # 优先级, 越大越会捕捉.
+  dependencies: List[Depend] = []
+  middlewares: List = []
 
-    @staticmethod
-    async def runner(func, *args, **kwargs):
-        if inspect.iscoroutinefunction(func):
-            return await func(*args, **kwargs)
-        else:
-            return func(*args, **kwargs)
+  def __init__(self,
+    match_string: str,
+    aliases: List[str] = [],
+    priority: int = 0,
+    dependencies: List[Depend] = [],
+    middlewares: List = []
+  ):
+    self.priority = priority
+    self.match_string = match_string
+    self.aliases = aliases
+    self.dependencies = dependencies
+    self.middlewares = middlewares
+  
+  def action(self, func):
+    if not callable(func):
+      raise TypeError("an action must be callable.")
+    self.actions.append(func)
+    return func
 
-    def getFristAction(self):
-        if self.actions:
-            return self.actions[0]
+  @staticmethod
+  async def runner(func, *args, **kwargs):
+    if inspect.iscoroutinefunction(func):
+      return await func(*args, **kwargs)
+    else:
+      return func(*args, **kwargs)
 
-    async def run(self, *args, **kwargs):
-        if self.actions:
-            result = self.runner(self.actions[0], *args, **kwargs)
-            for i in self.actions[1:]:
-                result = self.runner(i, *args, **kwargs)
-            return result
+  def getFristAction(self):
+    if self.actions:
+      return self.actions[0]
+
+  def getInstance(self):
+    if self.actions:
+      async def run(*args, **kwargs):
+        result = await self.runner(self.getFristAction(), *args, **kwargs)
+        for i in self.actions[1:]:
+          result = await self.runner(i, result)
+        return result
+      frist_action = self.getFristAction()
+      run.__name__ = frist_action.__name__
+      run.__annotations__ = frist_action.__annotations__
+      return run

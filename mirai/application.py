@@ -39,6 +39,7 @@ class Mirai(MiraiProtocol):
   listening_exceptions: List[Exception] = []
   extensite_config: Dict
   global_dependencies: List[Depend]
+  global_middlewares: List
 
   def __init__(self,
     url: Optional[str] = None,
@@ -50,10 +51,12 @@ class Mirai(MiraiProtocol):
 
     websocket: bool = False,
     extensite_config: dict = None,
-    global_dependencies: List[Depend] = None
+    global_dependencies: List[Depend] = None,
+    global_middlewares: List = None
   ):
     self.extensite_config = extensite_config or {}
     self.global_dependencies = global_dependencies or []
+    self.global_middlewares = global_middlewares or []
     self.useWebsocket = websocket
     if url:
       urlinfo = parse.urlparse(url)
@@ -121,12 +124,9 @@ class Mirai(MiraiProtocol):
 
       protocol = {
         "func": func,
-        "dependencies": dependencies or [],
-        "middlewares": use_middlewares or []
+        "dependencies": (dependencies or []) + self.global_dependencies,
+        "middlewares": (use_middlewares or []) + self.global_middlewares
       }
-
-      protocol['dependencies'] += self.global_dependencies
-      # support for global dependencies
       
       if event_name not in self.event:
         self.event[event_name] = [protocol]
@@ -135,11 +135,11 @@ class Mirai(MiraiProtocol):
       return func
     return receiver_warpper
 
-  async def throw_exception_event(self, event_context, queue, exception):
+  async def throw_exception_event(self, event_context, exception):
     from .event.builtins import UnexpectedException
     if event_context.name != "UnexpectedException":
       #print("error: by pre:", event_context.name)
-      await queue.put(InternalEvent(
+      await self.queue.put(InternalEvent(
         name="UnexpectedException",
         body=UnexpectedException(
           error=exception,
@@ -180,17 +180,16 @@ class Mirai(MiraiProtocol):
         raise TypeError("you must use a Depend to patch the default value.")
     return signature_mapping
 
-  async def signature_checkout(self, func, event_context, queue):
+  async def signature_checkout(self, func, event_context):
     signature_mapping = self.signature_getter(func)
     return {
       k: await self.main_entrance(
         v.func,
-        event_context,
-        queue
+        event_context
       ) for k, v in signature_mapping.items()
     }
 
-  async def main_entrance(self, run_body, event_context, queue):
+  async def main_entrance(self, run_body, event_context, extra={}):
     if isinstance(run_body, dict):
       callable_target = run_body['func']
       for depend in run_body['dependencies']:
@@ -205,10 +204,10 @@ class Mirai(MiraiProtocol):
           result = await self.main_entrance(
             {
               "func": depend_func,
-              "middlewares": depend.middlewares,
-              "dependencies": []
+              "middlewares": depend.middlewares + self.global_middlewares,
+              "dependencies": self.global_dependencies
             },
-            event_context, queue
+            event_context
           )
           if result is TRACEBACKED:
             return TRACEBACKED
@@ -222,7 +221,7 @@ class Mirai(MiraiProtocol):
             EventLogger.error(f"threw a exception by {event_context.name} in a depend, and it's {e}, body has been cancelled.")
             raise
           else:
-            await self.throw_exception_event(event_context, queue, e)
+            await self.throw_exception_event(event_context, e)
             return TRACEBACKED
 
     else:
@@ -236,8 +235,7 @@ class Mirai(MiraiProtocol):
 
     depend_handler_result = await self.signature_checkout(
       callable_target,
-      event_context,
-      queue
+      event_context
     )
     if depend_handler_result is TRACEBACKED:
       return TRACEBACKED
@@ -247,7 +245,8 @@ class Mirai(MiraiProtocol):
         callable_target,
         event_context
       )),
-      **depend_handler_result
+      **depend_handler_result,
+      **extra
     }
 
     try:
@@ -306,11 +305,11 @@ class Mirai(MiraiProtocol):
         EventLogger.error(f"threw a exception by {event_context.name}, and it's {e}")
         raise
       else:
-        await self.throw_exception_event(event_context, queue, e)
+        await self.throw_exception_event(event_context, e)
         return TRACEBACKED
 
-  async def message_polling(self, exit_signal, queue, count=10):
-    while not exit_signal():
+  async def message_polling(self, count=10):
+    while True:
       await asyncio.sleep(0.5)
 
       try:
@@ -330,27 +329,24 @@ class Mirai(MiraiProtocol):
 
       for message_index in range(len(result)):
         item = result[message_index]
-        await queue.put(
+        await self.queue.put(
           InternalEvent(
             name=self.getEventCurrentName(type(item)),
             body=item
           )
         )
 
-  async def ws_event_receiver(self, exit_signal, queue):
+  async def ws_event_receiver(self):
     from mirai.event.external.enums import ExternalEvents
     async with aiohttp.ClientSession() as session:
       async with session.ws_connect(
         f"{self.baseurl}/all?sessionKey={self.session_key}"
       ) as ws_connection:
-        while not exit_signal():
+        while True:
           try:
             received_data = await ws_connection.receive_json()
           except TypeError:
-            if not exit_signal():
               continue
-            else:
-              break
           if received_data:
             try:
               if received_data['type'] in MessageTypes:
@@ -371,32 +367,28 @@ class Mirai(MiraiProtocol):
               SessionLogger.error(f"parse failed: {received_data}")
               traceback.print_exc()
             else:
-              await queue.put(InternalEvent(
+              await self.queue.put(InternalEvent(
                 name=self.getEventCurrentName(type(received_data)),
                 body=received_data
               ))
 
-  async def event_runner(self, exit_signal_status, queue: asyncio.Queue):
-    while not exit_signal_status():
+  async def event_runner(self):
+    while True:
       event_context: InternalEvent
       try:
-        event_context: NamedTuple[InternalEvent] = await asyncio.wait_for(queue.get(), 3)
+        event_context: NamedTuple[InternalEvent] = await asyncio.wait_for(self.queue.get(), 3)
       except asyncio.TimeoutError:
-        if exit_signal_status():
-          break
-        else:
-          continue
+        continue
 
       if event_context.name in self.registeredEventNames:
+        EventLogger.info(f"handling a event: {event_context.name}")
         for event_body in list(self.event.values())\
               [self.registeredEventNames.index(event_context.name)]:
           if event_body:
-            EventLogger.info(f"handling a event: {event_context.name}")
-
             running_loop = asyncio.get_running_loop()
             running_loop.create_task(self.main_entrance(
               event_body,
-              event_context, queue
+              event_context
             ))
   
   def getRestraintMapping(self):
@@ -655,7 +647,7 @@ class Mirai(MiraiProtocol):
     self.checkEventDependencies()
 
     loop = loop or asyncio.get_event_loop()
-    self.queue = queue = asyncio.Queue(loop=loop)
+    self.queue = asyncio.Queue(loop=loop)
     exit_signal = False
     loop.run_until_complete(self.enable_session())
     if not no_polling:
@@ -671,17 +663,17 @@ class Mirai(MiraiProtocol):
         if self.useWebsocket:
           SessionLogger.warning("catched wrong config: enableWebsocket=false, we will modify it on launch.")
           loop.run_until_complete(self.setConfig(enableWebsocket=True))
-          loop.create_task(self.ws_event_receiver(lambda: exit_signal, queue))
+          loop.create_task(self.ws_event_receiver())
         else:
-          loop.create_task(self.message_polling(lambda: exit_signal, queue))
+          loop.create_task(self.message_polling())
       else: # we can use websocket, it's fine
         if self.useWebsocket:
-          loop.create_task(self.ws_event_receiver(lambda: exit_signal, queue))
+          loop.create_task(self.ws_event_receiver())
         else:
           SessionLogger.warning("catched wrong config: enableWebsocket=true, we will modify it on launch.")
           loop.run_until_complete(self.setConfig(enableWebsocket=False))
-          loop.create_task(self.message_polling(lambda: exit_signal, queue))
-      loop.create_task(self.event_runner(lambda: exit_signal, queue))
+          loop.create_task(self.message_polling())
+      loop.create_task(self.event_runner())
     
     if not no_forever:
       for i in self.subroutines:
