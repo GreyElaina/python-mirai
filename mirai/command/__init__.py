@@ -8,7 +8,7 @@ from mirai import (
 
   InternalEvent,
 
-  GroupMessage,
+  GroupMessage, FriendMessage
 )
 from mirai.misc import raiser
 from mirai.logger import Session as SessionLogger
@@ -96,7 +96,7 @@ class CommandManager:
               wrong_key = list(compile_result.named.keys())[
                 checker_named_value.index(True)
               ]
-              SessionLogger.error(f"a wrong argument catched, because of the special value: {wrong_key} in {i}")
+              SessionLogger.error(f"a wrong argument catched, because of the special value: {wrong_key} in {i}, catched on {gm}")
               return
             # 可以开始传值了.
 
@@ -115,9 +115,52 @@ class CommandManager:
 
   async def friend_message_handler(self,
     app: Mirai, message: MessageChain,
-    sender: Friend
+    sender: Friend, fm: FriendMessage
   ):
-    pass
+    message_string = message.toString()
+    if message_string.startswith(self.command_prefix):
+      mapping = {"".join(random.choices("qwertyuiopasdfghjklzxcvbnm", k=12)): i for i in message}
+      string = "".join([v.toString() if isinstance(v, (
+        Plain,
+        Source,
+      )) else k for k, v in mapping.items()])
+      for i in self.matches_commands:
+        for j in [i.match_string, *i.aliases]:
+          compile_result = self.compileSignature(j, string[1:], { # qtmd prefix
+            "Face": lambda x: mapping[x.strip()] \
+              if mapping[x.strip()].__class__ == Face else raiser(
+                TypeError("Should be a Face component.")
+              ),
+            "Image": lambda x: mapping[x.strip()] \
+              if mapping[x.strip()].__class__ == Image else raiser(
+                TypeError("Should be a Image component.")
+              )
+          })
+          if compile_result:
+            # 检查
+            if compile_result.fixed:
+              SessionLogger.warn(f"catched a unnamed argument, it will be passed: {compile_result.fixed} on {fm}")
+            
+            checker_named_value = [i.strip() in mapping for i in compile_result.named.values()]
+            if True in checker_named_value:
+              wrong_key = list(compile_result.named.keys())[
+                checker_named_value.index(True)
+              ]
+              SessionLogger.error(f"a wrong argument catched, because of the special value: {wrong_key} in {i}, catched on {fm}")
+              return
+            # 可以开始传值了.
+
+            loop: asyncio.AbstractEventLoop = asyncio.get_running_loop()
+            loop.create_task(self.main_application.main_entrance(
+              {
+                "func": i.getInstance(),
+                "middlewares": i.middlewares + self.main_application.global_middlewares,
+                "dependencies": i.dependencies + self.main_application.global_dependencies
+              }, InternalEvent(
+                name="FriendMessage",
+                body=fm
+              ), compile_result.named
+            ))
 
   async def mirai_console_builtins_wrapper(self):
     """不应该在 prefix != / 时启动.  
