@@ -37,6 +37,8 @@ class Mirai(MiraiProtocol):
   }
   useWebsocket = False
   listening_exceptions: List[Exception] = []
+  extensite_config: Dict
+  global_dependencies: List[Depend]
 
   def __init__(self,
     url: Optional[str] = None,
@@ -46,8 +48,12 @@ class Mirai(MiraiProtocol):
     authKey: Optional[str] = None,
     qq: Optional[int] = None,
 
-    websocket: bool = False
+    websocket: bool = False,
+    extensite_config: dict = None,
+    global_dependencies: List[Depend] = None
   ):
+    self.extensite_config = extensite_config or {}
+    self.global_dependencies = global_dependencies or []
     self.useWebsocket = websocket
     if url:
       urlinfo = parse.urlparse(url)
@@ -118,6 +124,9 @@ class Mirai(MiraiProtocol):
         "dependencies": dependencies or [],
         "middlewares": use_middlewares or []
       }
+
+      protocol['dependencies'] += self.global_dependencies
+      # support for global dependencies
       
       if event_name not in self.event:
         self.event[event_name] = [protocol]
