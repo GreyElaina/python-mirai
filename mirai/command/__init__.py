@@ -56,7 +56,7 @@ class CommandManager:
       result[command.priority].append(command)
     for command_set in result.values():
       command_set.sort(key=lambda x: x.match_string, reverse=True)
-    [*result[i] for i in reversed(sorted(result))]
+    self.matches_commands = list(reversed(sum([result[i] for i in sorted(result)], [])))
 
   def registerCommand(self, command_instance):
     self.matches_commands.append(command_instance)
@@ -78,19 +78,24 @@ class CommandManager:
         for j in [i.match_string, *i.aliases]:
           compile_result = self.compileSignature(j, string[1:], { # qtmd prefix
             "At": lambda x: mapping[x.strip()] \
-              if mapping[x.strip()].__class__ == At else raiser(
+              if x.strip() in mapping and \
+                mapping[x.strip()].__class__ == At
+              else raiser(
                 TypeError("Should be a At component.")
               ),
             "Face": lambda x: mapping[x.strip()] \
-              if mapping[x.strip()].__class__ == Face else raiser(
+              if x.strip() in mapping and \
+                mapping[x.strip()].__class__ == Face else raiser(
                 TypeError("Should be a Face component.")
               ),
             "Image": lambda x: mapping[x.strip()] \
-              if mapping[x.strip()].__class__ == Image else raiser(
+              if x.strip() in mapping and \
+                mapping[x.strip()].__class__ == Image else raiser(
                 TypeError("Should be a Image component.")
               ),
             "AtAll": lambda x: mapping[x.strip()] \
-              if mapping[x.strip()].__class__ == AtAll else raiser(
+              if x.strip() in mapping and \
+                mapping[x.strip()].__class__ == AtAll else raiser(
                 TypeError("Should be a AtAll component.")
               ),
           })
@@ -122,7 +127,6 @@ class CommandManager:
                 body=gm
               ), compile_result.named
             ))
-            break
         else:
           break
 
@@ -141,11 +145,13 @@ class CommandManager:
         for j in [i.match_string, *i.aliases]:
           compile_result = self.compileSignature(j, string[1:], { # qtmd prefix
             "Face": lambda x: mapping[x.strip()] \
-              if mapping[x.strip()].__class__ == Face else raiser(
+              if x.strip() in mapping and \
+                mapping[x.strip()].__class__ == Face else raiser(
                 TypeError("Should be a Face component.")
               ),
             "Image": lambda x: mapping[x.strip()] \
-              if mapping[x.strip()].__class__ == Image else raiser(
+              if x.strip() in mapping and \
+                mapping[x.strip()].__class__ == Image else raiser(
                 TypeError("Should be a Image component.")
               )
           })
@@ -217,23 +223,22 @@ class CommandManager:
 
   def newMark(self, 
     match_string: str,
-    aliases: List[str] = [],
-    priority: int = 0,
-    dependencies: List[Depend] = [],
-    middlewares: List = []
+    aliases: List[str] = None,
+    priority: int = None,
+    dependencies: List[Depend] = None,
+    middlewares: List = None
   ):
-    new_command = Command(
-      match_string,
-      aliases, priority,
-      dependencies, middlewares
-    )
-    self.registerCommand(new_command)
-    self.sortCommands()
     def register(func):
+      new_command = Command(
+        match_string,
+        aliases or [], priority or 0,
+        dependencies or [], middlewares or []
+      )
+      self.registerCommand(new_command)
+      self.sortCommands()
       new_command.step()(func)
       return func
     return register
-    
 
   @staticmethod
   def compileSignature(signature_string: str, target_string: str, mapping: dict):
