@@ -75,6 +75,8 @@ class CommandManager:
         Quote,
       )) else k for k, v in mapping.items()])
       for i in self.matches_commands:
+        if "GroupMessage" not in i.ways:
+          continue
         for j in [i.match_string, *i.aliases]:
           compile_result = self.compileSignature(j, string[1:], { # qtmd prefix
             "At": lambda x: mapping[x.strip()] \
@@ -142,6 +144,8 @@ class CommandManager:
         Source,
       )) else k for k, v in mapping.items()])
       for i in self.matches_commands:
+        if "FriendMessage" not in i.ways:
+          continue
         for j in [i.match_string, *i.aliases]:
           compile_result = self.compileSignature(j, string[1:], { # qtmd prefix
             "Face": lambda x: mapping[x.strip()] \
@@ -183,7 +187,6 @@ class CommandManager:
                 body=fm
               ), compile_result.named
             ))
-            break
         else:
           break
 
