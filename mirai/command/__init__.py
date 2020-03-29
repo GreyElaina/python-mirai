@@ -45,6 +45,7 @@ class CommandManager:
     if friend_message:
       app.receiver("FriendMessage")(self.friend_message_handler)
     if self.command_prefix == "/": # 特殊规则.
+      SessionLogger.warn("if you setted a manager for someone in mirai-console, he or she won't action ANY command in there.")
       app.subroutine(self.mirai_console_builtins_wrapper)
 
   def sortCommands(self):
