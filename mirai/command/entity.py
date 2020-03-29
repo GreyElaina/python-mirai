@@ -2,7 +2,7 @@ from typing import (
   List, Callable
 )
 import inspect
-from mirai import Depend
+from mirai import Depend, Group, Friend, Member, GroupMessage, FriendMessage
 
 class Command:
   match_string: str # 主匹配
@@ -38,6 +38,17 @@ class Command:
     def step_register(func):
       if not callable(func):
         raise TypeError("an action must be callable.")
+      for k, v in func.__annotations__.items():
+        if v in [
+          Group, Member, GroupMessage
+        ]:
+          if "FriendMessage" in self.ways:
+            raise TypeError(f"you should set the ways currently: FriendMessage cannot use the annotations: {func}.{k}")
+        elif v in [
+          Friend, FriendMessage
+        ]:
+          if "FriendMessage" in self.ways:
+            raise TypeError(f"you should set the ways currently: GroupMessage cannot use the annotations: {func}.{k}")
       self.actions.append(func)
       return func
     return step_register
