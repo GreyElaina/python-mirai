@@ -48,7 +48,14 @@ class CommandManager:
       app.subroutine(self.mirai_console_builtins_wrapper)
 
   def sortCommands(self):
-    self.matches_commands.sort(key=lambda x: x.priority, reverse=True)
+    #self.matches_commands.sort(key=lambda x: x.priority, reverse=True)
+    result = {}
+    for command in self.matches_commands:
+      result.setdefault(command.priority, [])
+      result[command.priority].append(command)
+    for command_set in result.values():
+      command_set.sort(key=lambda x: x.match_string, reverse=True)
+    [*result[i] for i in reversed(sorted(result))]
 
   def registerCommand(self, command_instance):
     self.matches_commands.append(command_instance)
@@ -115,6 +122,8 @@ class CommandManager:
               ), compile_result.named
             ))
             break
+        else:
+          break
 
   async def friend_message_handler(self,
     app: Mirai, message: MessageChain,
@@ -168,6 +177,8 @@ class CommandManager:
               ), compile_result.named
             ))
             break
+        else:
+          break
 
   async def mirai_console_builtins_wrapper(self):
     """不应该在 prefix != / 时启动.  
@@ -187,7 +198,7 @@ class CommandManager:
           if received_data:
             message_string = " ".join([received_data['name'], *received_data['args']])
 
-  def Action(self, 
+  def newAction(self, 
     match_string: str,
     aliases: List[str] = [],
     priority: int = 0,
@@ -203,7 +214,7 @@ class CommandManager:
     self.sortCommands()
     return new_command
 
-  def Mark(self, 
+  def newMark(self, 
     match_string: str,
     aliases: List[str] = [],
     priority: int = 0,
