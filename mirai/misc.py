@@ -164,6 +164,19 @@ def edge_case_handler(func):
   wrapper.__name__ = func.__name__
   return wrapper
 
+def throw_error_if_not_enable(func):
+  def wrapper(self, *args, **kwargs):
+    if not self.enabled:
+      raise exceptions.NonEnabledError(
+        f"you mustn't use any methods in MiraiProtocol...,\
+      if you want to access '{func.__name__}' before `app.run()`\
+      , use 'Subroutine'."
+      )
+    return func(self, *args, **kwargs)
+  wrapper.__name__ = func.__name__
+  wrapper.__annotations__ = func.__annotations__
+  return wrapper
+
 def if_error_print_arg(func):
   def wrapper(*args, **kwargs):
     try:

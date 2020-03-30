@@ -26,3 +26,6 @@ class UnknownReceiverTarget(Exception):
 class CallDevelopers(Exception):
     '还愣着干啥?开ISSUE啊!'
     pass
+
+class NonEnabledError(Exception):
+    pass

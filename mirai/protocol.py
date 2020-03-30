@@ -1,26 +1,29 @@
+import json
 import re
+import threading
+import traceback
 import typing as T
 from datetime import timedelta
 from pathlib import Path
 from uuid import UUID
+
 import pydantic
-import traceback
-import json
 
-from mirai.event.message.models import FriendMessage, GroupMessage, BotMessage, MessageTypes
-
-from mirai.event import ExternalEvent
 from mirai.entities.friend import Friend
-from mirai.entities.group import Group, GroupSetting, Member, MemberChangeableSetting
-from mirai.event.message.chain import MessageChain
-from mirai.misc import ImageRegex, ImageType, assertOperatorSuccess, raiser, printer, getMatchedString
-from mirai.network import fetch
-from mirai.event.message.base import BaseMessageComponent
+from mirai.entities.group import (Group, GroupSetting, Member,
+                                  MemberChangeableSetting)
+from mirai.event import ExternalEvent
 from mirai.event.message import components
-from mirai.misc import protocol_log, edge_case_handler
+from mirai.event.message.base import BaseMessageComponent
+from mirai.event.message.chain import MessageChain
+from mirai.event.message.models import (BotMessage, FriendMessage,
+                                        GroupMessage, MessageTypes)
 from mirai.image import InternalImage
 from mirai.logger import Protocol as ProtocolLogger
-import threading
+from mirai.misc import (ImageRegex, ImageType, assertOperatorSuccess,
+                        edge_case_handler, getMatchedString, printer,
+                        protocol_log, raiser, throw_error_if_not_enable)
+from mirai.network import fetch
 
 # 与 mirai 的 Command 部分将由 mirai.command 模块进行魔法支持,
 # 并尽量的兼容 mirai-console 的内部机制.
@@ -50,6 +53,7 @@ class MiraiProtocol:
             }
         ), raise_exception=True, return_as_is=True)
 
+    @throw_error_if_not_enable
     @protocol_log
     @edge_case_handler
     async def release(self):
@@ -60,6 +64,7 @@ class MiraiProtocol:
             }
         ), raise_exception=True)
 
+    @throw_error_if_not_enable
     @edge_case_handler
     async def getConfig(self) -> dict:
         return assertOperatorSuccess(
@@ -68,6 +73,7 @@ class MiraiProtocol:
             }
         ), raise_exception=True, return_as_is=True)
 
+    @throw_error_if_not_enable
     @edge_case_handler
     async def setConfig(self,
         cacheSize=None,
@@ -85,6 +91,7 @@ class MiraiProtocol:
             }
         ), raise_exception=True, return_as_is=True)
 
+    @throw_error_if_not_enable
     @protocol_log
     @edge_case_handler
     async def sendFriendMessage(self,
@@ -103,7 +110,8 @@ class MiraiProtocol:
                 "messageChain": await self.handleMessageAsFriend(message)
             }
         ), raise_exception=True, return_as_is=True))
-    
+
+    @throw_error_if_not_enable
     @protocol_log
     @edge_case_handler
     async def sendGroupMessage(self,
@@ -127,6 +135,7 @@ class MiraiProtocol:
             }
         ), raise_exception=True, return_as_is=True))
 
+    @throw_error_if_not_enable
     @protocol_log
     @edge_case_handler
     async def revokeMessage(self, source: T.Union[components.Source, BotMessage, int]):
@@ -138,6 +147,7 @@ class MiraiProtocol:
                     raiser(TypeError("invaild message source"))
         }), raise_exception=True)
 
+    @throw_error_if_not_enable
     @protocol_log
     @edge_case_handler
     async def groupList(self) -> T.List[Group]:
@@ -147,6 +157,7 @@ class MiraiProtocol:
             })
         ]
 
+    @throw_error_if_not_enable
     @protocol_log
     @edge_case_handler
     async def friendList(self) -> T.List[Friend]:
@@ -156,6 +167,7 @@ class MiraiProtocol:
             })
         ]
 
+    @throw_error_if_not_enable
     @protocol_log
     @edge_case_handler
     async def memberList(self, target: int) -> T.List[Member]:
@@ -166,11 +178,13 @@ class MiraiProtocol:
             })
         ]
 
+    @throw_error_if_not_enable
     @protocol_log
     @edge_case_handler
     async def groupMemberNumber(self, target: int) -> int:
         return len(await self.memberList(target)) + 1
 
+    @throw_error_if_not_enable
     @protocol_log
     @edge_case_handler
     async def uploadImage(self, type: T.Union[str, ImageType], image: InternalImage):
@@ -180,6 +194,7 @@ class MiraiProtocol:
         }))
         return components.Image(**post_result)
 
+    @throw_error_if_not_enable
     @edge_case_handler
     async def fetchMessage(self, count: int) -> T.List[T.Union[FriendMessage, GroupMessage, ExternalEvent]]:
         from mirai.event.external.enums import ExternalEvents
@@ -215,6 +230,7 @@ class MiraiProtocol:
     async def getManagers(self):
         return assertOperatorSuccess(await fetch.http_get(f"{self.baseurl}/managers"))
 
+    @throw_error_if_not_enable
     @protocol_log
     @edge_case_handler
     async def messageFromId(self, sourceId: T.Union[components.Source, components.Quote, int]):
@@ -234,6 +250,7 @@ class MiraiProtocol:
         else:
             raise TypeError(f"unknown message, not found type.")
 
+    @throw_error_if_not_enable
     @protocol_log
     @edge_case_handler
     async def muteAll(self, group: T.Union[Group, int]) -> bool:
@@ -244,6 +261,7 @@ class MiraiProtocol:
             }
         ), raise_exception=True)
 
+    @throw_error_if_not_enable
     @protocol_log
     @edge_case_handler
     async def unmuteAll(self, group: T.Union[Group, int]) -> bool:
@@ -253,7 +271,8 @@ class MiraiProtocol:
                 "target": self.handleTargetAsGroup(group)
             }
         ), raise_exception=True)
-    
+
+    @throw_error_if_not_enable
     @protocol_log
     @edge_case_handler
     async def memberInfo(self,
@@ -268,6 +287,7 @@ class MiraiProtocol:
             }
         ), raise_exception=True, return_as_is=True))
 
+    @throw_error_if_not_enable
     @protocol_log
     @edge_case_handler
     async def botMemberInfo(self,
@@ -275,6 +295,7 @@ class MiraiProtocol:
     ):
         return await self.memberInfo(group, self.qq)
 
+    @throw_error_if_not_enable
     @protocol_log
     @edge_case_handler
     async def changeMemberInfo(self,
@@ -291,6 +312,7 @@ class MiraiProtocol:
             }
         ), raise_exception=True)
 
+    @throw_error_if_not_enable
     @protocol_log
     @edge_case_handler
     async def groupConfig(self, group: T.Union[Group, int]) -> GroupSetting:
@@ -301,6 +323,7 @@ class MiraiProtocol:
             })
         )
 
+    @throw_error_if_not_enable
     @protocol_log
     @edge_case_handler
     async def changeGroupConfig(self,
@@ -315,6 +338,7 @@ class MiraiProtocol:
             }
         ), raise_exception=True)
 
+    @throw_error_if_not_enable
     @protocol_log
     @edge_case_handler
     async def mute(self,
@@ -334,6 +358,7 @@ class MiraiProtocol:
             }
         ), raise_exception=True)
 
+    @throw_error_if_not_enable
     @protocol_log
     @edge_case_handler
     async def unmute(self,
@@ -348,6 +373,7 @@ class MiraiProtocol:
             }
         ), raise_exception=True)
 
+    @throw_error_if_not_enable
     @protocol_log
     @edge_case_handler
     async def kick(self,
