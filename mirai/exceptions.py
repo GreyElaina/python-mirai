@@ -7,6 +7,9 @@ class Cancelled(Exception):
 class UnknownTarget(Exception):
     pass
 
+class UnknownEvent(Exception):
+    pass
+
 class LoginException(Exception):
     "你忘记在mirai-console登录就这种错误."
     pass

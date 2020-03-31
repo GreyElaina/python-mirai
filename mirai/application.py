@@ -23,7 +23,7 @@ from mirai.logger import Session as SessionLogger
 from mirai.misc import raiser, TRACEBACKED
 from mirai.network import fetch
 from mirai.protocol import MiraiProtocol
-from mirai.exceptions import Cancelled
+from mirai import exceptions
 
 class Mirai(MiraiProtocol):
   event: Dict[
@@ -37,6 +37,7 @@ class Mirai(MiraiProtocol):
   }
   useWebsocket = False
   listening_exceptions: List[Exception] = []
+
   extensite_config: Dict
   global_dependencies: List[Depend]
   global_middlewares: List
@@ -58,6 +59,7 @@ class Mirai(MiraiProtocol):
     self.global_dependencies = global_dependencies or []
     self.global_middlewares = global_middlewares or []
     self.useWebsocket = websocket
+
     if url:
       urlinfo = parse.urlparse(url)
       if urlinfo:
@@ -91,7 +93,7 @@ class Mirai(MiraiProtocol):
       else:
         raise ValueError("invaild arguments")
 
-  async def enable_session(self) -> "Session":
+  async def enable_session(self):
     auth_response = await self.auth()
     if all([
       "code" in auth_response and auth_response['code'] == 0,
@@ -112,33 +114,27 @@ class Mirai(MiraiProtocol):
     self.enabled = True
     return self
 
-  def receiver(self, event_name,
+  def receiver(self,
+      event_name,
       dependencies: List[Depend] = None,
       use_middlewares: List[Callable] = None
     ):
-    def receiver_warpper(
-      func: Callable[[Union[FriendMessage, GroupMessage], "Session"], Awaitable[Any]]
-    ):
+    def receiver_warpper(func: Callable):
       if not inspect.iscoroutinefunction(func):
         raise TypeError("event body must be a coroutine function.")
 
-      protocol = {
+      self.event.setdefault(event_name, [])
+      self.event[event_name].append({
         "func": func,
         "dependencies": (dependencies or []) + self.global_dependencies,
         "middlewares": (use_middlewares or []) + self.global_middlewares
-      }
-      
-      if event_name not in self.event:
-        self.event[event_name] = [protocol]
-      else:
-        self.event[event_name].append(protocol)
+      })
       return func
     return receiver_warpper
 
   async def throw_exception_event(self, event_context, exception):
     from .event.builtins import UnexpectedException
     if event_context.name != "UnexpectedException":
-      #print("error: by pre:", event_context.name)
       await self.queue.put(InternalEvent(
         name="UnexpectedException",
         body=UnexpectedException(
@@ -189,6 +185,105 @@ class Mirai(MiraiProtocol):
       ) for k, v in signature_mapping.items()
     }
 
+  async def message_polling(self, count=10):
+    while True:
+      await asyncio.sleep(0.5)
+
+      try:
+        result  = \
+          await super().fetchMessage(count)
+      except pydantic.ValidationError:
+        continue
+      last_length = len(result)
+      latest_result = []
+      while True:
+        if last_length == count:
+          latest_result = await super().fetchMessage(count)
+          last_length = len(latest_result)
+          result += latest_result
+          continue
+        break
+
+      for message_index in range(len(result)):
+        item = result[message_index]
+        await self.queue.put(
+          InternalEvent(
+            name=self.getEventCurrentName(type(item)),
+            body=item
+          )
+        )
+
+  async def ws_message(self):
+    async with aiohttp.ClientSession() as session:
+      async with session.ws_connect(
+        f"{self.baseurl}/message?sessionKey={self.session_key}"
+      ) as ws_connection:
+        while True:
+          try:
+            received_data = await ws_connection.receive_json()
+          except TypeError:
+            continue
+          if received_data:
+            try:
+              received_data['messageChain'] = MessageChain.parse_obj(received_data['messageChain'])
+              received_data = MessageTypes[received_data['type']].parse_obj(received_data)
+            except pydantic.ValidationError:
+              SessionLogger.error(f"parse failed: {received_data}")
+              traceback.print_exc()
+            else:
+              await self.queue.put(InternalEvent(
+                name=self.getEventCurrentName(type(received_data)),
+                body=received_data
+              ))
+  
+  async def ws_event(self):
+    from mirai.event.external.enums import ExternalEvents
+    async with aiohttp.ClientSession() as session:
+      async with session.ws_connect(
+        f"{self.baseurl}/event?sessionKey={self.session_key}"
+      ) as ws_connection:
+        while True:
+          try:
+            received_data = await ws_connection.receive_json()
+          except TypeError:
+            continue
+          if received_data:
+            try:
+              if hasattr(ExternalEvents, received_data['type']):
+                  received_data = \
+                    ExternalEvents[received_data['type']]\
+                      .value\
+                      .parse_obj(received_data)
+              else:
+                raise exceptions.UnknownEvent(f"a unknown event has been received, it's '{received_data['type']}'")
+            except pydantic.ValidationError:
+              SessionLogger.error(f"parse failed: {received_data}")
+              traceback.print_exc()
+            else:
+              await self.queue.put(InternalEvent(
+                name=self.getEventCurrentName(type(received_data)),
+                body=received_data
+              ))
+
+  async def event_runner(self):
+    while True:
+      event_context: InternalEvent
+      try:
+        event_context: NamedTuple[InternalEvent] = await asyncio.wait_for(self.queue.get(), 3)
+      except asyncio.TimeoutError:
+        continue
+
+      if event_context.name in self.registeredEventNames:
+        EventLogger.info(f"handling a event: {event_context.name}")
+        for event_body in list(self.event.values())\
+              [self.registeredEventNames.index(event_context.name)]:
+          if event_body:
+            running_loop = asyncio.get_running_loop()
+            running_loop.create_task(self.main_entrance(
+              event_body,
+              event_context
+            ))
+  
   async def main_entrance(self, run_body, event_context, extra={}):
     if isinstance(run_body, dict):
       callable_target = run_body['func']
@@ -211,7 +306,7 @@ class Mirai(MiraiProtocol):
           )
           if result is TRACEBACKED:
             return TRACEBACKED
-        except Cancelled:
+        except exceptions.Cancelled:
           return TRACEBACKED
         except (NameError, TypeError) as e:
           EventLogger.error(f"threw a exception by {event_context.name}, it's about Annotations Checker, please report to developer.")
@@ -298,7 +393,7 @@ class Mirai(MiraiProtocol):
     except (NameError, TypeError) as e:
       EventLogger.error(f"threw a exception by {event_context.name}, it's about Annotations Checker, please report to developer.")
       traceback.print_exc()
-    except Cancelled:
+    except exceptions.Cancelled:
       return TRACEBACKED
     except Exception as e:
       if type(e) not in self.listening_exceptions:
@@ -308,89 +403,6 @@ class Mirai(MiraiProtocol):
         await self.throw_exception_event(event_context, e)
         return TRACEBACKED
 
-  async def message_polling(self, count=10):
-    while True:
-      await asyncio.sleep(0.5)
-
-      try:
-        result  = \
-          await super().fetchMessage(count)
-      except pydantic.ValidationError:
-        continue
-      last_length = len(result)
-      latest_result = []
-      while True:
-        if last_length == count:
-          latest_result = await super().fetchMessage(count)
-          last_length = len(latest_result)
-          result += latest_result
-          continue
-        break
-
-      for message_index in range(len(result)):
-        item = result[message_index]
-        await self.queue.put(
-          InternalEvent(
-            name=self.getEventCurrentName(type(item)),
-            body=item
-          )
-        )
-
-  async def ws_event_receiver(self):
-    from mirai.event.external.enums import ExternalEvents
-    async with aiohttp.ClientSession() as session:
-      async with session.ws_connect(
-        f"{self.baseurl}/all?sessionKey={self.session_key}"
-      ) as ws_connection:
-        while True:
-          try:
-            received_data = await ws_connection.receive_json()
-          except TypeError:
-              continue
-          if received_data:
-            try:
-              if received_data['type'] in MessageTypes:
-                  if 'messageChain' in received_data: 
-                    received_data['messageChain'] = \
-                      MessageChain.parse_obj(received_data['messageChain'])
-
-                  received_data = \
-                    MessageTypes[received_data['type']].parse_obj(received_data)
-
-              elif hasattr(ExternalEvents, received_data['type']):
-                  # 判断当前项是否为 Event
-                  received_data = \
-                    ExternalEvents[received_data['type']]\
-                      .value\
-                      .parse_obj(received_data)
-            except pydantic.ValidationError:
-              SessionLogger.error(f"parse failed: {received_data}")
-              traceback.print_exc()
-            else:
-              await self.queue.put(InternalEvent(
-                name=self.getEventCurrentName(type(received_data)),
-                body=received_data
-              ))
-
-  async def event_runner(self):
-    while True:
-      event_context: InternalEvent
-      try:
-        event_context: NamedTuple[InternalEvent] = await asyncio.wait_for(self.queue.get(), 3)
-      except asyncio.TimeoutError:
-        continue
-
-      if event_context.name in self.registeredEventNames:
-        EventLogger.info(f"handling a event: {event_context.name}")
-        for event_body in list(self.event.values())\
-              [self.registeredEventNames.index(event_context.name)]:
-          if event_body:
-            running_loop = asyncio.get_running_loop()
-            running_loop.create_task(self.main_entrance(
-              event_body,
-              event_context
-            ))
-  
   def getRestraintMapping(self):
     from mirai.event.external.enums import ExternalEvents
     def warpper(name, event_context):
@@ -663,12 +675,14 @@ class Mirai(MiraiProtocol):
         if self.useWebsocket:
           SessionLogger.warning("catched wrong config: enableWebsocket=false, we will modify it on launch.")
           loop.run_until_complete(self.setConfig(enableWebsocket=True))
-          loop.create_task(self.ws_event_receiver())
+          loop.create_task(self.ws_event())
+          loop.create_task(self.ws_message())
         else:
           loop.create_task(self.message_polling())
       else: # we can use websocket, it's fine
         if self.useWebsocket:
-          loop.create_task(self.ws_event_receiver())
+          loop.create_task(self.ws_event())
+          loop.create_task(self.ws_message())
         else:
           SessionLogger.warning("catched wrong config: enableWebsocket=true, we will modify it on launch.")
           loop.run_until_complete(self.setConfig(enableWebsocket=False))

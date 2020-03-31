@@ -448,7 +448,7 @@ class MiraiProtocol:
                 elif isinstance(i, components.Image):
                     result.append({
                         "type": "Image",
-                        "imageId": i.asGroupImage()
+                        "imageId": i.asFriendImage()
                     })
                 else:
                     result.append(json.loads(i.json()))

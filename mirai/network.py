@@ -13,9 +13,9 @@ class fetch:
     async def http_post(url, data_map):
         async with aiohttp.ClientSession() as session:
             async with session.post(url, json=data_map) as response:
-                response.raise_for_status()
                 data = await response.text(encoding="utf-8")
                 Network.debug(f"requested url={url}, by data_map={data_map}, and status={response.status}, data={data}")
+                response.raise_for_status()
         try:
             return json.loads(data)
         except json.decoder.JSONDecodeError:
