@@ -17,7 +17,8 @@ setup(
         "aiohttp",
         "pydantic",
         "Logbook",
-        "parse"
+        "parse",
+        "async_lru"
     ],
     long_description=long_description,
     long_description_content_type="text/markdown",
