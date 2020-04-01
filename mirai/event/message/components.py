@@ -177,6 +177,13 @@ class App(BaseMessageComponent):
     def __init__(self, content: str, **_):
         super().__init__(content=content)
 
+class Poke(BaseMessageComponent):
+    type: MessageComponentTypes = "Poke"
+    name: str
+
+    def __init__(self, name: str, **_):
+        super().__init__(name=name)
+
 class Unknown(BaseMessageComponent):
     type: MessageComponentTypes = "Unknown"
     text: str
@@ -195,5 +202,6 @@ MessageComponents = {
     "Xml": Xml,
     "Json": Json,
     "App": App,
+    "Poke": Poke,
     "Unknown": Unknown
 }

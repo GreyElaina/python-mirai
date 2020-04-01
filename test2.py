@@ -1,4 +1,4 @@
-from mirai import Mirai, Image, Plain, MessageChain, Group, Member, Depend, At
+from mirai import Mirai, Image, Plain, MessageChain, Group, Member, Depend, At, FriendMessage
 import asyncio
 from devtools import debug
 
@@ -28,11 +28,16 @@ async def u():
 async def event_gm(app: Mirai, message: MessageChain, group: Group, member: Member):
     if member.id == 1846913566:
         m = message.getFirstComponent(Image)
-        await app.sendFriendMessage(member.id, [
-            #Image.fromFileSystem("E:\\Image\\00C49FCD-D8D9-4966-B2FC-F18F6220485E.jpg")
-            #At(target=1846913566)
-            m
-        ])
+        if m:
+            await app.sendFriendMessage(member.id, [
+                #Image.fromFileSystem("E:\\Image\\00C49FCD-D8D9-4966-B2FC-F18F6220485E.jpg")
+                #At(target=1846913566)
+                m
+            ])
+
+@app.receiver("FriendMessage")
+async def R(app: Mirai, fm: FriendMessage):
+    debug(fm)
 
 if __name__ == "__main__":
     app.run()

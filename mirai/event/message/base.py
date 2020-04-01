@@ -17,6 +17,7 @@ class MessageComponentTypes(Enum):
     Xml = "Xml"
     Json = "Json"
     App = "App"
+    Poke = "Poke"
     Unknown = "Unknown"
 
 class BaseMessageComponent(BaseModel):

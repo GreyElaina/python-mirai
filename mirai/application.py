@@ -2,14 +2,16 @@ import asyncio
 import copy
 import inspect
 import traceback
-from functools import partial
+from functools import partial, lru_cache
+from async_lru import alru_cache
 from typing import (
     Any, Awaitable, Callable, Dict, List, NamedTuple, Optional, Union)
 from urllib import parse
-import contextlib
+from contextlib import AsyncExitStack, ExitStack
 
 import pydantic
 import aiohttp
+import sys
 
 from mirai.depend import Depend
 from mirai.entities.friend import Friend
@@ -20,9 +22,11 @@ from mirai.event.message.models import (FriendMessage, GroupMessage,
                                         MessageItemType, MessageTypes)
 from mirai.logger import Event as EventLogger
 from mirai.logger import Session as SessionLogger
-from mirai.misc import raiser, TRACEBACKED
+from mirai.misc import argument_signature, raiser, TRACEBACKED, printer
 from mirai.network import fetch
 from mirai.protocol import MiraiProtocol
+from mirai.entities.builtins import ExecutorProtocol
+from functools import lru_cache
 from mirai import exceptions
 
 class Mirai(MiraiProtocol):
@@ -124,66 +128,13 @@ class Mirai(MiraiProtocol):
         raise TypeError("event body must be a coroutine function.")
 
       self.event.setdefault(event_name, [])
-      self.event[event_name].append({
-        "func": func,
-        "dependencies": (dependencies or []) + self.global_dependencies,
-        "middlewares": (use_middlewares or []) + self.global_middlewares
-      })
+      self.event[event_name].append(ExecutorProtocol(
+        callable=func,
+        dependencies=(dependencies or []) + self.global_dependencies,
+        middlewares=(use_middlewares or []) + self.global_middlewares
+      ))
       return func
     return receiver_warpper
-
-  async def throw_exception_event(self, event_context, exception):
-    from .event.builtins import UnexpectedException
-    if event_context.name != "UnexpectedException":
-      await self.queue.put(InternalEvent(
-        name="UnexpectedException",
-        body=UnexpectedException(
-          error=exception,
-          event=event_context,
-          application=self
-        )
-      ))
-      EventLogger.error(f"threw a exception by {event_context.name}, Exception: {exception.__class__.__name__}, but it has been catched.")
-    else:
-      EventLogger.critical(f"threw a exception by {event_context.name}, Exception: {exception.__class__.__name__}, it's a exception handler.")
-
-  async def argument_compiler(self, func, event_context):
-    annotations_mapping = self.get_annotations_mapping()
-    signature_mapping = self.signature_getter(func)
-    translated_mapping = { # 执行主体
-      k: annotations_mapping[v](
-        event_context
-      )\
-      for k, v in func.__annotations__.items()\
-        if \
-          k != "return" and \
-          k not in signature_mapping # 嗯...你设了什么default? 放你过去.
-    }
-    return translated_mapping
-
-  @staticmethod
-  def signature_getter(func):
-    "获取函数的默认值列表"
-    return {k: v.default \
-      for k, v in dict(inspect.signature(func).parameters).items() \
-        if v.default != inspect._empty}
-
-  @staticmethod
-  def signature_checker(func):
-    signature_mapping = Mirai.signature_getter(func)
-    for i in signature_mapping.values():
-      if not isinstance(i, Depend):
-        raise TypeError("you must use a Depend to patch the default value.")
-    return signature_mapping
-
-  async def signature_checkout(self, func, event_context):
-    signature_mapping = self.signature_getter(func)
-    return {
-      k: await self.main_entrance(
-        v.func,
-        event_context
-      ) for k, v in signature_mapping.items()
-    }
 
   async def message_polling(self, count=10):
     while True:
@@ -267,7 +218,6 @@ class Mirai(MiraiProtocol):
 
   async def event_runner(self):
     while True:
-      event_context: InternalEvent
       try:
         event_context: NamedTuple[InternalEvent] = await asyncio.wait_for(self.queue.get(), 3)
       except asyncio.TimeoutError:
@@ -279,147 +229,183 @@ class Mirai(MiraiProtocol):
               [self.registeredEventNames.index(event_context.name)]:
           if event_body:
             running_loop = asyncio.get_running_loop()
-            running_loop.create_task(self.main_entrance(
-              event_body,
-              event_context
-            ))
-  
-  async def main_entrance(self, run_body, event_context, extra={}):
-    if isinstance(run_body, dict):
-      callable_target = run_body['func']
-      for depend in run_body['dependencies']:
-        if not inspect.isclass(depend.func):
-          depend_func = depend.func
-        elif hasattr(depend.func, "__call__"):
-          depend_func = depend.func.__call__
-        else:
-          raise TypeError("must be callable.")
-        
-        try:
-          result = await self.main_entrance(
-            {
-              "func": depend_func,
-              "middlewares": depend.middlewares + self.global_middlewares,
-              "dependencies": self.global_dependencies
-            },
-            event_context
-          )
-          if result is TRACEBACKED:
-            return TRACEBACKED
-        except exceptions.Cancelled:
-          return TRACEBACKED
-        except (NameError, TypeError) as e:
-          EventLogger.error(f"threw a exception by {event_context.name}, it's about Annotations Checker, please report to developer.")
-          traceback.print_exc()
-        except Exception as e:
-          if type(e) not in self.listening_exceptions:
-            EventLogger.error(f"threw a exception by {event_context.name} in a depend, and it's {e}, body has been cancelled.")
-            raise
-          else:
-            await self.throw_exception_event(event_context, e)
-            return TRACEBACKED
+            running_loop.create_task(self.executor(event_body, event_context))
 
-    else:
-      if inspect.isclass(run_body):
-        if hasattr(run_body, "__call__"):
-          run_body = run_body.__call__
-        else:
-          raise TypeError("must be callable.")
-      else:
-        callable_target = run_body
-
-    depend_handler_result = await self.signature_checkout(
-      callable_target,
-      event_context
-    )
-    if depend_handler_result is TRACEBACKED:
-      return TRACEBACKED
-
-    translated_mapping = {
-      **(await self.argument_compiler(
-        callable_target,
-        event_context
-      )),
-      **depend_handler_result,
-      **extra
+  @staticmethod
+  def sort_middlewares(iterator):
+    return {
+      "async": [
+        i for i in iterator if all([
+          hasattr(i, "__aenter__"),
+          hasattr(i, "__aexit__")
+        ])
+      ],
+      "normal": [
+        i for i in iterator if all([
+          hasattr(i, "__enter__"),
+          hasattr(i, "__exit__")
+        ])
+      ]
     }
 
-    try:
-      if isinstance(run_body, dict):
-        middlewares = run_body.get("middlewares")
-        if middlewares:
-          async_middlewares = []
-          normal_middlewares = []
-
-          for middleware in middlewares:
-            if all([
-              hasattr(middleware, "__aenter__"),
-              hasattr(middleware, "__aexit__")
-            ]):
-              async_middlewares.append(middleware)
-            elif all([
-              hasattr(middleware, "__enter__"),
-              hasattr(middleware, "__exit__")
-            ]):
-              normal_middlewares.append(middleware)
-            else:
-              SessionLogger.error(f"threw a exception by {event_context.name}, no currect context error.")
-              raise AttributeError("no a currect context object.")
-
-          async with contextlib.AsyncExitStack() as async_stack:
-            for async_middleware in async_middlewares:
-              SessionLogger.debug(f"a event called {event_context.name}, enter a currect async context.")
-              await async_stack.enter_async_context(async_middleware)
-
-            with contextlib.ExitStack() as normal_stack:
-              for normal_middleware in normal_middlewares:
-                SessionLogger.debug(f"a event called {event_context.name}, enter a currect context.")
-                normal_stack.enter_context(normal_middleware)
-
-              if inspect.iscoroutinefunction(callable_target):
-                return await callable_target(**translated_mapping)
-              else:
-                return callable_target(**translated_mapping)
-        else:
-          if inspect.iscoroutinefunction(callable_target):
-            return await callable_target(**translated_mapping)
-          else:
-            return callable_target(**translated_mapping)
+  async def put_exception(self, event_context, exception):
+    from mirai.event.builtins import UnexpectedException
+    if event_context.name != "UnexpectedException":
+      if exception.__class__ in self.listening_exceptions:
+        EventLogger.error(f"threw a exception by {event_context.name}, Exception: {exception.__class__.__name__}, and it has been catched.")
       else:
-        if inspect.iscoroutinefunction(callable_target):
-          return await callable_target(**translated_mapping)
-        else:
-          return callable_target(**translated_mapping)
+        EventLogger.error(f"threw a exception by {event_context.name}, Exception: {exception.__class__.__name__}, and it hasn't been catched!")
+        traceback.print_exc()
+      await self.queue.put(InternalEvent(
+        name="UnexpectedException",
+        body=UnexpectedException(
+          error=exception,
+          event=event_context,
+          application=self
+        )
+      ))
+    else:
+      EventLogger.critical(f"threw a exception in a exception handler by {event_context.name}, Exception: {exception.__class__.__name__}.")
+
+  async def executor_with_middlewares(self,
+    callable, raw_middlewares,
+    event_context,
+    lru_cache_sets=None
+  ):
+    middlewares = self.sort_middlewares(raw_middlewares)
+    try:
+      async with AsyncExitStack() as stack:
+        for async_middleware in middlewares['async']:
+          await stack.enter_async_context(async_middleware)
+        for normal_middleware in middlewares['normal']:
+          stack.enter_context(normal_middleware)
+      
+      result = await self.executor(ExecutorProtocol(
+        callable=callable,
+        dependencies=self.global_dependencies,
+        middlewares=[]
+      ), event_context,
+        lru_cache_sets=lru_cache_sets
+      )
+      if result is TRACEBACKED:
+        return TRACEBACKED
+    except exceptions.Cancelled:
+      return TRACEBACKED
     except (NameError, TypeError) as e:
       EventLogger.error(f"threw a exception by {event_context.name}, it's about Annotations Checker, please report to developer.")
       traceback.print_exc()
+    except Exception as exception:
+      if type(exception) not in self.listening_exceptions:
+        EventLogger.error(f"threw a exception by {event_context.name} in a depend, and it's {exception}, body has been cancelled.")
+        raise
+      else:
+        await self.put_exception(
+          event_context,
+          exception
+        )
+        return TRACEBACKED
+
+  async def executor(self,
+    executor_protocol: ExecutorProtocol,
+    event_context,
+    extra_parameter={},
+    lru_cache_sets=None
+  ):
+    lru_cache_sets = lru_cache_sets or {}
+    executor_protocol: ExecutorProtocol
+    for depend in executor_protocol.dependencies:
+      if not inspect.isclass(depend.func):
+        depend_func = depend.func
+      elif hasattr(depend.func, "__call__"):
+        depend_func = depend.func.__call__
+      else:
+        raise TypeError("must be callable.")
+
+      if depend_func in lru_cache_sets:
+        depend_func = lru_cache_sets[depend_func]
+      else:
+        if inspect.iscoroutinefunction(depend_func):
+          depend_func = alru_cache(depend_func)
+        else:
+          depend_func = lru_cache(depend_func)
+        lru_cache_sets[depend_func] = depend_func
+
+      result = await self.executor_with_middlewares(
+        depend_func, depend.middlewares, event_context, lru_cache_sets
+      )
+      if result is TRACEBACKED:
+        return TRACEBACKED
+      else:
+        dependencies_cache[depend] = result
+
+    ParamSignatures = argument_signature(executor_protocol.callable)
+    PlaceAnnotation = self.get_annotations_mapping()
+    CallParams = {}
+    for name, annotation, default in ParamSignatures:
+      if default:
+        if isinstance(default, Depend):
+          if not inspect.isclass(depend.func):
+            depend_func = depend.func
+          elif hasattr(depend.func, "__call__"):
+            depend_func = depend.func.__call__
+          else:
+            raise TypeError("must be callable.")
+          
+          if depend_func in lru_cache_sets:
+            depend_func = lru_cache_sets[depend_func]
+          else:
+            if inspect.iscoroutinefunction(depend_func):
+              depend_func = alru_cache(depend_func)
+            else:
+              depend_func = lru_cache(depend_func)
+            lru_cache_sets[depend_func] = depend_func
+
+          CallParams[name] = self.executor_with_middlewares(
+            depend_func, depend.middlewares, event_context, lru_cache_sets
+          )
+          continue
+        else:
+          raise RuntimeError("checked a unexpected default value.")
+      else:
+        if annotation in PlaceAnnotation:
+          CallParams[name] = PlaceAnnotation[annotation](event_context.body)
+          continue
+        else:
+          raise RuntimeError(f"checked a unexpected annotation: {annotation}")
+    
+    try:
+      async with AsyncExitStack() as stack:
+        sorted_middlewares = self.sort_middlewares(executor_protocol.middlewares)
+        for async_middleware in sorted_middlewares['async']:
+          await stack.enter_async_context(async_middleware)
+        for normal_middleware in sorted_middlewares['normal']:
+          stack.enter_context(normal_middleware)
+
+        return await self.run_func(executor_protocol.callable, **CallParams)
     except exceptions.Cancelled:
       return TRACEBACKED
     except Exception as e:
-      if type(e) not in self.listening_exceptions:
-        EventLogger.error(f"threw a exception by {event_context.name}, and it's {e}")
-        raise
-      else:
-        await self.throw_exception_event(event_context, e)
-        return TRACEBACKED
+      await self.put_exception(event_context, e)
+      return TRACEBACKED
 
   def getRestraintMapping(self):
     from mirai.event.external.enums import ExternalEvents
-    def warpper(name, event_context):
-      return name == event_context.name
     return {
       Mirai: lambda k: True,
-      GroupMessage: lambda k: k.name == "GroupMessage",
-      FriendMessage: lambda k: k.name =="FriendMessage",
-      MessageChain: lambda k: k.name in MessageTypes,
-      components.Source: lambda k: k.name in MessageTypes,
-      Group: lambda k: k.name == "GroupMessage",
-      Friend: lambda k: k.name =="FriendMessage",
-      Member: lambda k: k.name == "GroupMessage",
-      "Sender": lambda k: k.name in MessageTypes,
-      "Type": lambda k: k.name,
+      GroupMessage: lambda k: k.__class__.__name__ == "GroupMessage",
+      FriendMessage: lambda k: k.__class__.__name__ =="FriendMessage",
+      MessageChain: lambda k: k.__class__.__name__ in MessageTypes,
+      components.Source: lambda k: k.__class__.__name__ in MessageTypes,
+      Group: lambda k: k.__class__.__name__ == "GroupMessage",
+      Friend: lambda k: k.__class__.__name__ =="FriendMessage",
+      Member: lambda k: k.__class__.__name__ == "GroupMessage",
+      "Sender": lambda k: k.__class__.__name__ in MessageTypes,
+      "Type": lambda k: k.__class__.__name__,
       **({
-        event_class.value: partial(warpper, copy.copy(event_name))
+        event_class.value: partial(
+          (lambda a, b: a == b.__class__.__name__),
+          copy.copy(event_name)
+        )
         for event_name, event_class in \
           ExternalEvents.__members__.items()
       })
@@ -430,75 +416,46 @@ class Mirai(MiraiProtocol):
     for event_name in self.event:
       event_body_list = self.event[event_name]
       for i in event_body_list:
-        if not event_bodys.get(i['func']):
-          event_bodys[i['func']] = [event_name]
-        else:
-          event_bodys[i['func']].append(event_name)
+        event_bodys.setdefault(i.callable, [])
+        event_bodys[i.callable].append(event_name)
     
     restraint_mapping = self.getRestraintMapping()
-    
     for func in event_bodys:
-      whileList = self.signature_getter(func)
-      for param_name, func_item in func.__annotations__.items():
-        if param_name not in whileList:
-          for event_name in event_bodys[func]:
-            try:
-              if not (restraint_mapping[func_item](
-                  type("checkMockType", (object,), {
-                    "name": event_name
-                  })
-                )
-              ):
-                raise ValueError(f"error in annotations checker: {func}.{func_item}: {event_name}")
-            except KeyError:
-              raise ValueError(f"error in annotations checker: {func}.{func_item} is invaild.")
-            except ValueError:
-              raise
+      self.checkFuncAnnotations(func)
 
   def getFuncRegisteredEvents(self, callable_target: Callable):
-    event_bodys: Dict[Callable, List[str]] = {}
+    result = []
     for event_name in self.event:
-      event_body_list = sum([list(i.values()) for i in self.event[event_name]], [])
-      for i in event_body_list:
-        if not event_bodys.get(i['func']):
-          event_bodys[i['func']] = [event_name]
-        else:
-          event_bodys[i['func']].append(event_name)
-    return event_bodys.get(callable_target)
+      if callable_target in [i.callable for i in self.event[event_name]]:
+        result.append(event_name)
+    return result
 
   def checkFuncAnnotations(self, callable_target: Callable):
     restraint_mapping = self.getRestraintMapping()
-    whileList = self.signature_getter(callable_target)
     registered_events = self.getFuncRegisteredEvents(callable_target)
-    for param_name, func_item in callable_target.__annotations__.items():
-      if param_name not in whileList:
+    for name, annotation, default in argument_signature(callable_target):
+      if not default:
         if not registered_events:
           raise ValueError(f"error in annotations checker: {callable_target} is invaild.")
         for event_name in registered_events:
           try:
-            if not (restraint_mapping[func_item](
-                type("checkMockType", (object,), {
-                  "name": event_name
-                })
-              )
-            ):
-              raise ValueError(f"error in annotations checker: {callable_target}.{func_item}: {event_name}")
+            if not restraint_mapping[annotation](type(event_name, (object,), {})()):
+              raise ValueError(f"error in annotations checker: {callable_target}.[{name}:{annotation}]: {event_name}")
           except KeyError:
-            raise ValueError(f"error in annotations checker: {callable_target}.{func_item} is invaild.")
+            raise ValueError(f"error in annotations checker: {callable_target}.[{name}:{annotation}] is invaild.")
           except ValueError:
             raise
 
   def checkDependencies(self, depend_target: Depend):
-    signature_mapping = self.signature_checker(depend_target.func)
-    for k, v in signature_mapping.items():
-      if type(v) == Depend:
-        self.checkEventBodyAnnotations()
-        self.checkDependencies(v)
+    self.checkEventBodyAnnotations()
+    for name, annotation, default in argument_signature(depend_target.func):
+      if type(default) == Depend:
+        self.checkDependencies(default)
 
   def checkEventDependencies(self):
     for event_name, event_bodys in self.event.items():
       for i in event_bodys:
-        for depend in i['dependencies']:
+        for depend in i.dependencies:
           if type(depend) != Depend:
             raise TypeError(f"error in dependencies checker: {i['func']}: {event_name}")
           else:
@@ -507,31 +464,25 @@ class Mirai(MiraiProtocol):
   def exception_handler(self, exception_class=None):
     from .event.builtins import UnexpectedException
     from mirai.event.external.enums import ExternalEvents
-    def receiver_warpper(
-      func: Callable[[Union[FriendMessage, GroupMessage], "Session"], Awaitable[Any]]
-    ):
+    def receiver_warpper(func: Callable):
       event_name = "UnexpectedException"
 
       if not inspect.iscoroutinefunction(func):
         raise TypeError("event body must be a coroutine function.")
-    
+
       async def func_warpper_inout(context: UnexpectedException, *args, **kwargs):
         if type(context.error) == exception_class:
           return await func(context, *args, **kwargs)
 
       func_warpper_inout.__annotations__.update(func.__annotations__)
 
-      protocol = {
-        "func": func_warpper_inout,
-        "dependencies": [],
-        "middlewares": []
-      }
+      self.event.setdefault(event_name, [])
+      self.event[event_name].append(ExecutorProtocol(
+        callable=func_warpper_inout,
+        dependencies=self.global_dependencies,
+        middlewares=self.global_middlewares
+      ))
       
-      if event_name not in self.event:
-        self.event[event_name] = [protocol]
-      else:
-        self.event[event_name].append(protocol)
-
       if exception_class:
         if exception_class not in self.listening_exceptions:
           self.listening_exceptions.append(exception_class)
@@ -540,43 +491,44 @@ class Mirai(MiraiProtocol):
 
   def gen_event_anno(self):
     from mirai.event.external.enums import ExternalEvents
-    result = {}
-    for event_name, event_class in ExternalEvents.__members__.items():
-      def warpper(name, event_context):
-        if name != event_context.name:
-          raise ValueError("cannot look up a non-listened event.")
-        return event_context.body
-      result[event_class.value] = partial(warpper, copy.copy(event_name))
-    return result
+
+    def warpper(name, event_context):
+      if name != event_context.name:
+        raise ValueError("cannot look up a non-listened event.")
+      return event_context.body
+    return {
+      event_class.value: partial(warpper, copy.copy(event_name))\
+      for event_name, event_class in ExternalEvents.__members__.items()
+    }
 
   def get_annotations_mapping(self):
     return {
       Mirai: lambda k: self,
-      GroupMessage: lambda k: k.body \
-        if k.name == "GroupMessage" else\
+      GroupMessage: lambda k: k \
+        if self.getEventCurrentName(k) == "GroupMessage" else\
           raiser(ValueError("you cannot setting a unbind argument.")),
-      FriendMessage: lambda k: k.body \
-        if k.name == "FriendMessage" else\
+      FriendMessage: lambda k: k \
+        if self.getEventCurrentName(k) == "FriendMessage" else\
           raiser(ValueError("you cannot setting a unbind argument.")),
-      MessageChain: lambda k: k.body.messageChain\
-        if k.name in MessageTypes else\
+      MessageChain: lambda k: k.messageChain\
+        if self.getEventCurrentName(k) in MessageTypes else\
           raiser(ValueError("MessageChain is not enable in this type of event.")),
-      components.Source: lambda k: k.body.messageChain.getSource()\
-        if k.name in MessageTypes else\
+      components.Source: lambda k: k.messageChain.getSource()\
+        if self.getEventCurrentName(k) in MessageTypes else\
           raiser(TypeError("Source is not enable in this type of event.")),
-      Group: lambda k: k.body.sender.group\
-        if k.name == "GroupMessage" else\
+      Group: lambda k: k.sender.group\
+        if self.getEventCurrentName(k) == "GroupMessage" else\
           raiser(ValueError("Group is not enable in this type of event.")),
-      Friend: lambda k: k.body.sender\
-        if k.name == "FriendMessage" else\
+      Friend: lambda k: k.sender\
+        if self.getEventCurrentName(k) == "FriendMessage" else\
           raiser(ValueError("Friend is not enable in this type of event.")),
-      Member: lambda k: k.body.sender\
-        if k.name == "GroupMessage" else\
+      Member: lambda k: k.sender\
+        if self.getEventCurrentName(k) == "GroupMessage" else\
           raiser(ValueError("Group is not enable in this type of event.")),
-      "Sender": lambda k: k.body.sender\
-        if k.name in MessageTypes else\
+      "Sender": lambda k: k.sender\
+        if self.getEventCurrentName(k) in MessageTypes else\
           raiser(ValueError("Sender is not enable in this type of event.")),
-      "Type": lambda k: k.name,
+      "Type": lambda k: self.getEventCurrentName(k),
       **self.gen_event_anno()
     }
 
@@ -590,7 +542,7 @@ class Mirai(MiraiProtocol):
       GroupMessage,
       FriendMessage
     )):
-      return event_value.__name__
+      return event_value.__class__.__name__
     elif event_value in [ # message
       GroupMessage,
       FriendMessage
@@ -673,7 +625,7 @@ class Mirai(MiraiProtocol):
       if not result: # we can use http, not ws.
         # should use http, but we can change it.
         if self.useWebsocket:
-          SessionLogger.warning("catched wrong config: enableWebsocket=false, we will modify it on launch.")
+          SessionLogger.warning("catched wrong config: enableWebsocket=false, we will modify it.")
           loop.run_until_complete(self.setConfig(enableWebsocket=True))
           loop.create_task(self.ws_event())
           loop.create_task(self.ws_message())
@@ -684,7 +636,7 @@ class Mirai(MiraiProtocol):
           loop.create_task(self.ws_event())
           loop.create_task(self.ws_message())
         else:
-          SessionLogger.warning("catched wrong config: enableWebsocket=true, we will modify it on launch.")
+          SessionLogger.warning("catched wrong config: enableWebsocket=true, we will modify it.")
           loop.run_until_complete(self.setConfig(enableWebsocket=False))
           loop.create_task(self.message_polling())
       loop.create_task(self.event_runner())
