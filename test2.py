@@ -4,28 +4,23 @@ from devtools import debug
 
 from pprint import pprint
 from mirai.command import CommandManager, Command
+import random
 
 authKey = "213we355gdfbaerg"
 qq = 208924405
 
 app = Mirai(f"mirai://localhost:8070/?authKey={authKey}&qq={qq}", websocket=True)
-cm = CommandManager(app, command_prefix=".")
 
-@cm.newMark("test {na:Image} fq")
-async def t(app: Mirai, na):
-    pass
+def depend1():
+    print(1)
+    return random.random()
 
-@cm.newMark("test or {na:At} fq")
-async def r(na):
-    print(f"{na=}")
-
-@cm.newMark("teeeeeeeeeeeee at fq")
-async def u():
-    print("?")
-#pprint([(i, i.match_string, i.actions) for i in cm.matches_commands])
+def depend2(d = Depend(depend1)):
+    print(2)
+    return d
 
 @app.receiver("GroupMessage")
-async def event_gm(app: Mirai, message: MessageChain, group: Group, member: Member):
+async def event_gm(app: Mirai, message: MessageChain, group: Group, member: Member, d1 = Depend(depend1), d2 = Depend(depend2)):
     if member.id == 1846913566:
         m = message.getFirstComponent(Image)
         if m:

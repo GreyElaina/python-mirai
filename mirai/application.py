@@ -280,11 +280,13 @@ class Mirai(MiraiProtocol):
         for normal_middleware in middlewares['normal']:
           stack.enter_context(normal_middleware)
       
-      result = await self.executor(ExecutorProtocol(
-        callable=callable,
-        dependencies=self.global_dependencies,
-        middlewares=[]
-      ), event_context,
+      result = await self.executor(
+        ExecutorProtocol(
+          callable=callable,
+          dependencies=self.global_dependencies,
+          middlewares=[]
+        ),
+        event_context,
         lru_cache_sets=lru_cache_sets
       )
       if result is TRACEBACKED:
@@ -321,14 +323,16 @@ class Mirai(MiraiProtocol):
       else:
         raise TypeError("must be callable.")
 
-      if depend_func in lru_cache_sets:
+      if depend_func in lru_cache_sets and depend.cache:
         depend_func = lru_cache_sets[depend_func]
       else:
-        if inspect.iscoroutinefunction(depend_func):
-          depend_func = alru_cache(depend_func)
-        else:
-          depend_func = lru_cache(depend_func)
-        lru_cache_sets[depend_func] = depend_func
+        if depend.cache:
+          original = depend_func
+          if inspect.iscoroutinefunction(depend_func):
+            depend_func = alru_cache(depend_func)
+          else:
+            depend_func = lru_cache(depend_func)
+          lru_cache_sets[original] = depend_func
 
       result = await self.executor_with_middlewares(
         depend_func, depend.middlewares, event_context, lru_cache_sets
@@ -344,24 +348,26 @@ class Mirai(MiraiProtocol):
     for name, annotation, default in ParamSignatures:
       if default:
         if isinstance(default, Depend):
-          if not inspect.isclass(depend.func):
-            depend_func = depend.func
-          elif hasattr(depend.func, "__call__"):
-            depend_func = depend.func.__call__
+          if not inspect.isclass(default.func):
+            depend_func = default.func
+          elif hasattr(default.func, "__call__"):
+            depend_func = default.func.__call__
           else:
             raise TypeError("must be callable.")
           
-          if depend_func in lru_cache_sets:
+          if depend_func in lru_cache_sets and default.cache:
             depend_func = lru_cache_sets[depend_func]
           else:
-            if inspect.iscoroutinefunction(depend_func):
-              depend_func = alru_cache(depend_func)
-            else:
-              depend_func = lru_cache(depend_func)
-            lru_cache_sets[depend_func] = depend_func
+            if default.cache:
+              original = depend_func
+              if inspect.iscoroutinefunction(depend_func):
+                depend_func = alru_cache(depend_func)
+              else:
+                depend_func = lru_cache(depend_func)
+              lru_cache_sets[original] = depend_func
 
-          CallParams[name] = self.executor_with_middlewares(
-            depend_func, depend.middlewares, event_context, lru_cache_sets
+          CallParams[name] = await self.executor_with_middlewares(
+            depend_func, default.middlewares, event_context, lru_cache_sets
           )
           continue
         else:
