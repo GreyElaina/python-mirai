@@ -339,8 +339,6 @@ class Mirai(MiraiProtocol):
       )
       if result is TRACEBACKED:
         return TRACEBACKED
-      else:
-        dependencies_cache[depend] = result
 
     ParamSignatures = argument_signature(executor_protocol.callable)
     PlaceAnnotation = self.get_annotations_mapping()
