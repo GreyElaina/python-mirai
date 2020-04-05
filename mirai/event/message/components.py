@@ -229,7 +229,7 @@ class FlashImage(BaseMessageComponent):
 
     @staticmethod
     def fromFileSystem(path: T.Union[Path, str]) -> LocalImage:
-        return LocalImage(path)
+        return LocalImage(path, flash=True)
 
     async def toBytes(self, chunk_size=256) -> BytesIO:
         async with ClientSession() as session:
