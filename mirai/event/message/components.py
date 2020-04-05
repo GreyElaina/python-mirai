@@ -51,6 +51,7 @@ class Quote(BaseMessageComponent):
     id: T.Optional[int]
     groupId: T.Optional[int]
     senderId: T.Optional[int]
+    targetId: T.Optional[int]
     origin: MessageChain
 
     @validator("origin", always=True, pre=True)
@@ -129,6 +130,9 @@ class Image(BaseMessageComponent):
     def asFriendImage(self) -> str:
         return f"/{self.imageId.lower()}"
 
+    def asFlashImage(self) -> "FlashImage":
+        return FlashImage(self.imageId, self.url)
+
     @staticmethod
     def fromFileSystem(path: T.Union[Path, str]) -> LocalImage:
         return LocalImage(path)
@@ -191,6 +195,65 @@ class Unknown(BaseMessageComponent):
     def toString(self):
         return ""
 
+class FlashImage(BaseMessageComponent):
+    type: MessageComponentTypes = "FlashImage"
+    imageId: T.Optional[str]
+    url: T.Optional[HttpUrl] = None
+
+    @validator("imageId", always=True, pre=True)
+    @classmethod
+    def imageId_formater(cls, v):
+        length = len(v)
+        if length == 42:
+            # group
+            return v[1:-5]
+        elif length == 37:
+            return v[1:]
+        else:
+            return v
+
+    def __init__(self, imageId, url=None, **_):
+        super().__init__(imageId=imageId, url=url)
+
+    def toString(self):
+        return f"[FlashImage::{self.imageId}]"
+
+    def asGroupImage(self) -> str:
+        return f"{{{self.imageId.upper()}}}.jpg"
+
+    def asFriendImage(self) -> str:
+        return f"/{self.imageId.lower()}"
+
+    def asNormal(self) -> Image:
+        return Image(self.imageId, self.url)
+
+    @staticmethod
+    def fromFileSystem(path: T.Union[Path, str]) -> LocalImage:
+        return LocalImage(path)
+
+    async def toBytes(self, chunk_size=256) -> BytesIO:
+        async with ClientSession() as session:
+            async with session.get(self.url) as response:
+                result = BytesIO()
+                while True:
+                    chunk = await response.content.read(chunk_size)
+                    if not chunk:
+                        break
+                    result.write(chunk)
+            return result
+
+    @staticmethod
+    def fromBytes(data) -> BytesImage:
+        return BytesImage(data, flash=True)
+
+    @staticmethod
+    def fromBase64(base64_str) -> Base64Image:
+        return Base64Image(base64_str, flash=True)
+
+    @staticmethod
+    def fromIO(IO) -> IOImage:
+        return IOImage(IO, flash=True)
+
 MessageComponents = {
     "At": At,
     "AtAll": AtAll,
@@ -203,5 +266,6 @@ MessageComponents = {
     "Json": Json,
     "App": App,
     "Poke": Poke,
+    "FlashImage": FlashImage,
     "Unknown": Unknown
 }

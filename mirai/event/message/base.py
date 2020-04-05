@@ -18,6 +18,7 @@ class MessageComponentTypes(Enum):
     Json = "Json"
     App = "App"
     Poke = "Poke"
+    FlashImage = "FlashImage"
     Unknown = "Unknown"
 
 class BaseMessageComponent(BaseModel):
