@@ -60,3 +60,6 @@ class MessageChain(BaseModel):
 
     def getSource(self) -> Source:
         return self.getFirstComponent(Source)
+
+    __contains__ = hasComponent
+    __getitem__ = getAllofComponent
