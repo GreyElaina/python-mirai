@@ -203,7 +203,7 @@ class MiraiProtocol:
                 "sessionKey": self.session_key,
                 "count": count
             }
-        ), raise_exception=True, return_as_is=True)
+        ), raise_exception=True, return_as_is=True)['data']
         # 因为重新生成一个开销太大, 所以就直接在原数据内进行遍历替换
         try:
             for index in range(len(result)):
