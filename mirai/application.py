@@ -372,7 +372,7 @@ class Mirai(MiraiProtocol):
           raise RuntimeError("checked a unexpected default value.")
       else:
         if annotation in PlaceAnnotation:
-          CallParams[name] = PlaceAnnotation[annotation](event_context.body)
+          CallParams[name] = PlaceAnnotation[annotation](event_context)
           continue
         else:
           raise RuntimeError(f"checked a unexpected annotation: {annotation}")
