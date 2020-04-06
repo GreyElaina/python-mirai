@@ -44,6 +44,9 @@ from mirai.event.external import (
     BotUnmuteEvent,
     BotJoinGroupEvent,
 
+    GroupRecallEvent,
+    FriendRecallEvent,
+
     GroupNameChangeEvent,
     GroupEntranceAnnouncementChangeEvent,
     GroupMuteAllEvent,
