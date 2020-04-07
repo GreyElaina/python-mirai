@@ -508,31 +508,31 @@ class Mirai(MiraiProtocol):
   def get_annotations_mapping(self):
     return {
       Mirai: lambda k: self,
-      GroupMessage: lambda k: k \
-        if self.getEventCurrentName(k) == "GroupMessage" else\
+      GroupMessage: lambda k: k.body \
+        if self.getEventCurrentName(k.body) == "GroupMessage" else\
           raiser(ValueError("you cannot setting a unbind argument.")),
-      FriendMessage: lambda k: k \
-        if self.getEventCurrentName(k) == "FriendMessage" else\
+      FriendMessage: lambda k: k.body \
+        if self.getEventCurrentName(k.body) == "FriendMessage" else\
           raiser(ValueError("you cannot setting a unbind argument.")),
-      MessageChain: lambda k: k.messageChain\
-        if self.getEventCurrentName(k) in MessageTypes else\
+      MessageChain: lambda k: k.body.messageChain\
+        if self.getEventCurrentName(k.body) in MessageTypes else\
           raiser(ValueError("MessageChain is not enable in this type of event.")),
-      components.Source: lambda k: k.messageChain.getSource()\
-        if self.getEventCurrentName(k) in MessageTypes else\
+      components.Source: lambda k: k.body.messageChain.getSource()\
+        if self.getEventCurrentName(k.body) in MessageTypes else\
           raiser(TypeError("Source is not enable in this type of event.")),
-      Group: lambda k: k.sender.group\
-        if self.getEventCurrentName(k) == "GroupMessage" else\
+      Group: lambda k: k.body.sender.group\
+        if self.getEventCurrentName(k.body) == "GroupMessage" else\
           raiser(ValueError("Group is not enable in this type of event.")),
-      Friend: lambda k: k.sender\
-        if self.getEventCurrentName(k) == "FriendMessage" else\
+      Friend: lambda k: k.body.sender\
+        if self.getEventCurrentName(k.body) == "FriendMessage" else\
           raiser(ValueError("Friend is not enable in this type of event.")),
-      Member: lambda k: k.sender\
-        if self.getEventCurrentName(k) == "GroupMessage" else\
+      Member: lambda k: k.body.sender\
+        if self.getEventCurrentName(k.body) == "GroupMessage" else\
           raiser(ValueError("Group is not enable in this type of event.")),
-      "Sender": lambda k: k.sender\
-        if self.getEventCurrentName(k) in MessageTypes else\
+      "Sender": lambda k: k.body.sender\
+        if self.getEventCurrentName(k.body) in MessageTypes else\
           raiser(ValueError("Sender is not enable in this type of event.")),
-      "Type": lambda k: self.getEventCurrentName(k),
+      "Type": lambda k: self.getEventCurrentName(k.body),
       **self.gen_event_anno()
     }
 
