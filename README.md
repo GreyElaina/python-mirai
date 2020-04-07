@@ -22,6 +22,12 @@ pip install kuriyama
 你的 `Star` 是对我们最大的支持和鼓励.  
 若你在使用的过程中遇到了问题, 欢迎[提出聪明的问题](https://github.com/ryanhanwu/How-To-Ask-Questions-The-Smart-Way/blob/master/README-zh_CN.md), 也请不要[像个弱智一样提问](https://github.com/tangx/Stop-Ask-Questions-The-Stupid-Ways), 我们希望有人能让这个项目变得更好.  
 
+请各位开发者在开发遇到问题的时候, 请先去看文档, 然后再来说别的.
+如果真的是有程序上的错误, 请先判断是否是 `python-mirai` 的问题,
+然后在 issue 处新开一个问题, 通常来讲我会很快的回复(github 会给我发邮件).
+
+**若不是 python-mirai 的问题, 请不要在此处或是用 IM 向我征求解决方法, 先向其他项目汇报问题.**
+
 ### 鸣谢
 感谢 [`mamoe`](https://github.com/mamoe) 给我们带来 [`mirai`](https://github.com/mamoe/mirai) 这么一个如此精彩的项目.  
 
