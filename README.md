@@ -20,7 +20,7 @@ pip install kuriyama
 我们希望能有更多优秀的开发者加入到对项目的贡献上来  
 
 你的 `Star` 是对我们最大的支持和鼓励.  
-若你在使用的过程中遇到了问题, 欢迎[提出聪明的问题](https://github.com/ryanhanwu/How-To-Ask-Questions-The-Smart-Way/blob/master/README-zh_CN.md), 我们希望有人能让这个项目变得更好.  
+若你在使用的过程中遇到了问题, 欢迎[提出聪明的问题](https://github.com/ryanhanwu/How-To-Ask-Questions-The-Smart-Way/blob/master/README-zh_CN.md), 也请不要[像个弱智一样提问](https://github.com/tangx/Stop-Ask-Questions-The-Stupid-Ways), 我们希望有人能让这个项目变得更好.  
 
 ### 鸣谢
 感谢 [`mamoe`](https://github.com/mamoe) 给我们带来 [`mirai`](https://github.com/mamoe/mirai) 这么一个如此精彩的项目.  
