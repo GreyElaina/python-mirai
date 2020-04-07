@@ -375,7 +375,8 @@ class Mirai(MiraiProtocol):
           CallParams[name] = PlaceAnnotation[annotation](event_context)
           continue
         else:
-          raise RuntimeError(f"checked a unexpected annotation: {annotation}")
+          if name not in extra_parameter:
+            raise RuntimeError(f"checked a unexpected annotation: {annotation}")
     
     try:
       async with AsyncExitStack() as stack:
@@ -385,7 +386,7 @@ class Mirai(MiraiProtocol):
         for normal_middleware in sorted_middlewares['normal']:
           stack.enter_context(normal_middleware)
 
-        return await self.run_func(executor_protocol.callable, **CallParams)
+        return await self.run_func(executor_protocol.callable, **CallParams, **extra_parameter)
     except exceptions.Cancelled:
       return TRACEBACKED
     except Exception as e:
