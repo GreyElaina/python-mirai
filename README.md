@@ -29,7 +29,14 @@ pip install kuriyama
 **若不是 python-mirai 的问题, 请不要在此处或是用 IM 向我征求解决方法, 先向其他项目汇报问题.**
 
 ### 鸣谢
-感谢 [`mamoe`](https://github.com/mamoe) 给我们带来 [`mirai`](https://github.com/mamoe/mirai) 这么一个如此精彩的项目.  
+> 这些项目也很棒, 去他们的项目页看看, 点个 `Star` 以鼓励他们的开发工作, 毕竟没有他们也没有 `python-mirai`.
+
+特别感谢 [`mamoe`](https://github.com/mamoe) 给我们带来这些精彩的项目:
+ - [`mirai`](https://github.com/mamoe/mirai): 即 `mirai-core`, 一个高性能, 高可扩展性的 QQ 协议库, 同时也是个很棒的机器人开发框架!
+ - [`mirai-console`](https://github.com/mamoe/mirai-console): 一个基于 `mirai` 开发的插件式可扩展开发平台, 我们的大多数开发工作基本上都在该项目上完成, 不得不称赞其带来的开发敏捷性.
+ - [`mirai-api-http`](https://github.com/mamoe/mirai-console): 为该项目提供 `http` 接口的 `mirai-console` 插件, 万物之源 ~~`python-mirai` 的 star 甚至比 httpapi 还高, 去帮帮吧~~
+
+也感谢使用 `NatriumLab` 旗下开源的工具链进行开发的各位开发者, 请积极向上游项目反馈问题, 这对所有人都是有益的.
 
 ### 许可证
 我们使用 [`GNU AGPLv3`](https://choosealicense.com/licenses/agpl-3.0/) 作为本项目的开源许可证, 而由于原项目 [`mirai`](https://github.com/mamoe/mirai) 同样使用了 `GNU AGPLv3` 作为开源许可证, 因此你在使用时需要遵守相应的规则.  
