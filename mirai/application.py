@@ -84,7 +84,7 @@ class Mirai(MiraiProtocol):
 
           self.baseurl = f"http://{urlinfo.netloc}"
           self.auth_key = authKey
-          self.qq = query_info["qq"][0]
+          self.qq =  int(query_info["qq"][0])
         else:
           raise ValueError("invaild url: wrong format")
       else:
@@ -93,7 +93,7 @@ class Mirai(MiraiProtocol):
       if all([host, port, authKey, qq]):
         self.baseurl = f"http://{host}:{port}"
         self.auth_key = authKey
-        self.qq = qq
+        self.qq = int(qq)
       else:
         raise ValueError("invaild arguments")
 
