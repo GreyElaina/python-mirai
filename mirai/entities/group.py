@@ -16,7 +16,7 @@ class Group(BaseModel):
         return f"<Group id={self.id} name='{self.name}' permission={self.permission.name}>"
 
     def getAvatarUrl(self) -> str:
-        return f'https://p.qlogo.cn/gh/{self.id}/{self.id}_1/140'
+        return f'https://p.qlogo.cn/gh/{self.id}/{self.id}/'
 
 class Member(BaseModel):
     id: int
