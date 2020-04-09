@@ -608,6 +608,7 @@ class Mirai(MiraiProtocol):
           self.event[event_name] = items.copy()
       self.subroutines = other.subroutines
       for life_name, items in other.lifecycle:
+        self.lifecycle.setdefault(life_name, [])
         self.lifecycle[life_name] += items
       self.listening_exceptions += other.listening_exceptions
 
