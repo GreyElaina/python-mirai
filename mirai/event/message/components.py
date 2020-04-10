@@ -134,6 +134,12 @@ class Image(BaseMessageComponent):
         return FlashImage(self.imageId, self.url)
 
     @staticmethod
+    async def fromRemote(url, **extra) -> BytesImage:
+        async with ClientSession() as session:
+            async with session.get(url, **extra) as response:
+                return BytesImage(await response.read())
+
+    @staticmethod
     def fromFileSystem(path: T.Union[Path, str]) -> LocalImage:
         return LocalImage(path)
 
