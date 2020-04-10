@@ -51,7 +51,7 @@ class GroupRecallEvent(ExternalEvent):
     messageId: int
     time: datetime
     group: Group
-    operator: Member
+    operator: T.Optional[Member]
 
 class FriendRecallEvent(ExternalEvent):
     type: EventType = EventType.FriendRecallEvent
