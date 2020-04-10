@@ -33,6 +33,8 @@ def assertOperatorSuccess(result, raise_exception=False, return_as_is=False):
           4: exceptions.ValidatedSession, # 啊 smjb错误... 也会自动重连
           5: exceptions.UnknownReceiverTarget, # 业务代码错误.
           10: PermissionError, # 一般业务代码错误, 自行亦会
+          20: exceptions.BotMutedError, # 机器人被禁言
+          30: exceptions.TooLargeMessageError,
           400: exceptions.CallDevelopers # 发生这个错误...你就给我提个ISSUE
         }[result['code']](f"""invaild stdin: { {
           1: "wrong auth key",
@@ -41,6 +43,8 @@ def assertOperatorSuccess(result, raise_exception=False, return_as_is=False):
           4: "disabled session key",
           5: "unknown receiver target",
           10: "permission denied",
+          20: "bot account has been muted",
+          30: "mirai backend cannot deal with so large message",
           400: "wrong arguments"
         }[result['code']] }""")
       else:

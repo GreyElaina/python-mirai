@@ -32,3 +32,9 @@ class CallDevelopers(Exception):
 
 class NonEnabledError(Exception):
     pass
+
+class BotMutedError(Exception):
+    pass
+
+class TooLargeMessageError(Exception):
+    pass
