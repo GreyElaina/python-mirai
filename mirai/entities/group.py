@@ -32,7 +32,7 @@ class Member(BaseModel):
 
 class MemberChangeableSetting(BaseModel):
     name: str
-    specialTitle: str
+    announcement: str
 
     def modify(self, **kwargs):
         for i in ("name", "kwargs"):
