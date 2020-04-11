@@ -148,7 +148,9 @@ def secure_filename(filename):
 
 def edge_case_handler(func):
   async def wrapper(self, *args, **kwargs):
-    while True:
+    retry_times = 0
+    while retry_times <= 5:
+      retry_times += 1
       try:
         return await func(self, *args, **kwargs)
       except exceptions.AuthenticateError:
@@ -172,6 +174,8 @@ def edge_case_handler(func):
         exit(-1)
       except:
         raise
+    else:
+      Protocol.error("we retried many times, but it doesn't send a success message to us...")
   wrapper.__name__ = func.__name__
   return wrapper
 
