@@ -34,7 +34,7 @@ pip install kuriyama
 特别感谢 [`mamoe`](https://github.com/mamoe) 给我们带来这些精彩的项目:
  - [`mirai`](https://github.com/mamoe/mirai): 即 `mirai-core`, 一个高性能, 高可扩展性的 QQ 协议库, 同时也是个很棒的机器人开发框架!
  - [`mirai-console`](https://github.com/mamoe/mirai-console): 一个基于 `mirai` 开发的插件式可扩展开发平台, 我们的大多数开发工作基本上都在该项目上完成, 不得不称赞其带来的开发敏捷性.
- - [`mirai-api-http`](https://github.com/mamoe/mirai-console): 为该项目提供 `http` 接口的 `mirai-console` 插件, 万物之源 ~~`python-mirai` 的 star 甚至比 httpapi 还高, 去帮帮吧~~
+ - [`mirai-api-http`](https://github.com/mamoe/mirai-api-http): 为该项目提供 `http` 接口的 `mirai-console` 插件, 万物之源 ~~`python-mirai` 的 star 甚至比 httpapi 还高, 去帮帮吧~~
 
 也感谢使用 `NatriumLab` 旗下开源的工具链进行开发的各位开发者, 请积极向上游项目反馈问题, 这对所有人都是有益的.
 

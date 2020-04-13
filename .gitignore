@@ -136,4 +136,4 @@ dmypy.json
 .pytype/
 
 # test
-test.py
+./test.py
