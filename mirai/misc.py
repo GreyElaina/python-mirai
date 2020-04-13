@@ -26,6 +26,7 @@ def assertOperatorSuccess(result, raise_exception=False, return_as_is=False):
       return result['code'] == 0
     else:
       if result['code'] != 0:
+        print(result)
         raise {
           1: exceptions.AuthenticateError, # 这种情况需要检查Authkey, 可能还是连错了.
           2: exceptions.LoginException, # 嗯...你是不是忘记在mirai-console登录了?...算了 自动重连.

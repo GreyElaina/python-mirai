@@ -18,10 +18,15 @@ from mirai.entities.friend import Friend
 from mirai.entities.group import Group, Member
 from mirai.event import ExternalEvent, ExternalEventTypes, InternalEvent
 from mirai.event.message import MessageChain, components
-from mirai.event.message.models import (FriendMessage, GroupMessage,
-                                        MessageItemType, MessageTypes)
-from mirai.logger import Event as EventLogger
-from mirai.logger import Session as SessionLogger
+from mirai.event.message.models import (
+  FriendMessage, GroupMessage, TempMessage,
+  MessageItemType, MessageTypes
+)
+from mirai.logger import (
+  Event as EventLogger,
+  Session as SessionLogger,
+  Network as NetworkLogger
+)
 from mirai.misc import argument_signature, raiser, TRACEBACKED, printer
 from mirai.network import fetch
 from mirai.protocol import MiraiProtocol
@@ -175,6 +180,7 @@ class Mirai(MiraiProtocol):
           except TypeError:
             continue
           if received_data:
+            NetworkLogger.debug("received", received_data)
             try:
               received_data['messageChain'] = MessageChain.parse_obj(received_data['messageChain'])
               received_data = MessageTypes[received_data['type']].parse_obj(received_data)
@@ -398,12 +404,13 @@ class Mirai(MiraiProtocol):
     return {
       Mirai: lambda k: True,
       GroupMessage: lambda k: k.__class__.__name__ == "GroupMessage",
-      FriendMessage: lambda k: k.__class__.__name__ =="FriendMessage",
+      FriendMessage: lambda k: k.__class__.__name__ == "FriendMessage",
+      TempMessage: lambda k: k.__class__.__name__ == "TempMessage",
       MessageChain: lambda k: k.__class__.__name__ in MessageTypes,
       components.Source: lambda k: k.__class__.__name__ in MessageTypes,
-      Group: lambda k: k.__class__.__name__ == "GroupMessage",
+      Group: lambda k: k.__class__.__name__ in ["GroupMessage", "TempMessage"],
       Friend: lambda k: k.__class__.__name__ =="FriendMessage",
-      Member: lambda k: k.__class__.__name__ == "GroupMessage",
+      Member: lambda k: k.__class__.__name__ in ["GroupMessage", "TempMessage"],
       "Sender": lambda k: k.__class__.__name__ in MessageTypes,
       "Type": lambda k: k.__class__.__name__,
       **({
@@ -515,6 +522,9 @@ class Mirai(MiraiProtocol):
       FriendMessage: lambda k: k.body \
         if self.getEventCurrentName(k.body) == "FriendMessage" else\
           raiser(ValueError("you cannot setting a unbind argument.")),
+      TempMessage: lambda k: k.body \
+        if self.getEventCurrentName(k.body) == "TempMessage" else\
+          raiser(ValueError("you cannot setting a unbind argument.")),
       MessageChain: lambda k: k.body.messageChain\
         if self.getEventCurrentName(k.body) in MessageTypes else\
           raiser(ValueError("MessageChain is not enable in this type of event.")),
@@ -522,13 +532,13 @@ class Mirai(MiraiProtocol):
         if self.getEventCurrentName(k.body) in MessageTypes else\
           raiser(TypeError("Source is not enable in this type of event.")),
       Group: lambda k: k.body.sender.group\
-        if self.getEventCurrentName(k.body) == "GroupMessage" else\
+        if self.getEventCurrentName(k.body) in ["GroupMessage", "TempMessage"] else\
           raiser(ValueError("Group is not enable in this type of event.")),
       Friend: lambda k: k.body.sender\
         if self.getEventCurrentName(k.body) == "FriendMessage" else\
           raiser(ValueError("Friend is not enable in this type of event.")),
       Member: lambda k: k.body.sender\
-        if self.getEventCurrentName(k.body) == "GroupMessage" else\
+        if self.getEventCurrentName(k.body) in ["GroupMessage", "TempMessage"] else\
           raiser(ValueError("Group is not enable in this type of event.")),
       "Sender": lambda k: k.body.sender\
         if self.getEventCurrentName(k.body) in MessageTypes else\
@@ -545,12 +555,14 @@ class Mirai(MiraiProtocol):
     elif isinstance(event_value, ( # normal class
       UnexpectedException,
       GroupMessage,
-      FriendMessage
+      FriendMessage,
+      TempMessage
     )):
       return event_value.__class__.__name__
     elif event_value in [ # message
       GroupMessage,
-      FriendMessage
+      FriendMessage,
+      TempMessage
     ]:
       return event_value.__name__
     elif isinstance(event_value, ( # enum

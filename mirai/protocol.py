@@ -80,7 +80,7 @@ class MiraiProtocol:
         enableWebsocket=None
     ):
         return assertOperatorSuccess(
-            await fetch.http_get(f"{self.baseurl}/config", {
+            await fetch.http_post(f"{self.baseurl}/config", {
                 "sessionKey": self.session_key,
                 **({
                     "cacheSize": cacheSize
@@ -129,6 +129,32 @@ class MiraiProtocol:
                 "sessionKey": self.session_key,
                 "target": self.handleTargetAsGroup(group),
                 "messageChain": await self.handleMessageAsGroup(message),
+                **({"quote": quoteSource.id \
+                    if isinstance(quoteSource, components.Source) else quoteSource}\
+                if quoteSource else {})
+            }
+        ), raise_exception=True, return_as_is=True))
+
+    @throw_error_if_not_enable
+    @protocol_log
+    @edge_case_handler
+    async def sendTempMessage(self,
+        group: T.Union[Group, int],
+        member: T.Union[Member, int],
+        message: T.Union[
+            MessageChain,
+            BaseMessageComponent,
+            T.List[T.Union[BaseMessageComponent, InternalImage]],
+            str
+        ],
+        quoteSource: T.Union[int, components.Source]=None
+    ) -> BotMessage:
+        return BotMessage.parse_obj(assertOperatorSuccess(
+            await fetch.http_post(f"{self.baseurl}/sendTempMessage", {
+                "sessionKey": self.session_key,
+                "qq": (member.id if isinstance(member, Member) else member),
+                "group": (group.id if isinstance(group, Group) else group),
+                "messageChain": await self.handleMessageForTempMessage(message),
                 **({"quote": quoteSource.id \
                     if isinstance(quoteSource, components.Source) else quoteSource}\
                 if quoteSource else {})
@@ -193,6 +219,15 @@ class MiraiProtocol:
             "type": type if isinstance(type, str) else type.value
         }))
         return components.Image(**post_result)
+
+    @protocol_log
+    @edge_case_handler
+    async def sendCommand(self, command, *args):
+        return assertOperatorSuccess(await fetch.http_post(f"{self.baseurl}/command/send", {
+            "authKey": self.auth_key,
+            "name": command,
+            "args": args
+        }), raise_exception=True, return_as_is=True)
 
     @throw_error_if_not_enable
     @edge_case_handler
@@ -458,6 +493,39 @@ class MiraiProtocol:
         else:
             raise raiser(ValueError("invaild message."))
 
+    async def handleMessageForTempMessage(
+        self, 
+        message: T.Union[
+            MessageChain,
+            BaseMessageComponent,
+            T.List[BaseMessageComponent],
+            str
+        ]):
+        if isinstance(message, MessageChain):
+            return json.loads(message.json())
+        elif isinstance(message, BaseMessageComponent):
+            return [json.loads(message.json())]
+        elif isinstance(message, (tuple, list)):
+            result = []
+            for i in message:
+                if isinstance(i, InternalImage):
+                    result.append({
+                        "type": "Image" if not i.flash else "FlashImage",
+                        "imageId": (await self.handleInternalImageForTempMessage(i)).asFriendImage()
+                    })
+                elif isinstance(i, components.Image):
+                    result.append({
+                        "type": "Image" if not i.flash else "FlashImage",
+                        "imageId": i.asFriendImage()
+                    })
+                else:
+                    result.append(json.loads(i.json()))
+            return result
+        elif isinstance(message, str):
+            return [json.loads(components.Plain(text=message).json())]
+        else:
+            raise raiser(ValueError("invaild message."))
+
     def handleTargetAsGroup(self, target: T.Union[Group, int]):
         return target if isinstance(target, int) else \
             target.id if isinstance(target, Group) else \
@@ -478,3 +546,6 @@ class MiraiProtocol:
 
     async def handleInternalImageAsFriend(self, image: InternalImage):
         return await self.uploadImage("friend", image)
+
+    async def handleInternalImageForTempMessage(self, image: InternalImage):
+        return await self.uploadImage("temp", image)
