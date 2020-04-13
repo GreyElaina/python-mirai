@@ -35,4 +35,7 @@ class ExternalEvents(Enum):
     MemberMuteEvent = MemberMuteEvent
     MemberUnmuteEvent = MemberUnmuteEvent
 
+    NewFriendRequestEvent = NewFriendRequestEvent
+    MemberJoinEvent
+
     UnexpectedException = UnexpectedException

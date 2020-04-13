@@ -64,9 +64,15 @@ from mirai.event.external import (
     MemberSpecialTitleChangeEvent,
     MemberPermissionChangeEvent,
     MemberMuteEvent,
-    MemberUnmuteEvent
-)
+    MemberUnmuteEvent,
 
+    NewFriendRequestEvent,
+    MemberJoinRequestEvent
+)
+from mirai.event.enums import (
+    NewFriendRequestResponseOperate as NewFriendRequestResp,
+    MemberJoinRequestResponseOperate as MemberJoinRequestResp
+)
 
 from mirai.entities.friend import (
     Friend

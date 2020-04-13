@@ -13,6 +13,11 @@ from mirai.entities.friend import Friend
 from mirai.entities.group import (Group, GroupSetting, Member,
                                   MemberChangeableSetting)
 from mirai.event import ExternalEvent
+from mirai.event import external as eem
+from mirai.event.enums import (
+    NewFriendRequestResponseOperate,
+    MemberJoinRequestResponseOperate
+)
 from mirai.event.message import components
 from mirai.event.message.base import BaseMessageComponent
 from mirai.event.message.chain import MessageChain
@@ -426,6 +431,49 @@ class MiraiProtocol:
                 } if kickMessage else {})
             }
         ), raise_exception=True)
+
+    @throw_error_if_not_enable
+    @protocol_log
+    @edge_case_handler
+    async def respondRequest(self,
+        request: T.Union[
+            eem.NewFriendRequestEvent,
+            eem.MemberJoinRequestEvent
+        ],
+        operate: T.Union[
+            NewFriendRequestResponseOperate,
+            MemberJoinRequestResponseOperate,
+            int
+        ],
+        message: T.Optional[str] = ""
+    ):
+        """回应请求, 请求指 `添加好友请求` 或 `申请加群请求`."""
+        if isinstance(request, eem.NewFriendRequestEvent):
+            if not isinstance(operate, (NewFriendRequestResponseOperate, int)):
+                raise TypeError(f"unknown operate: {operate}")
+            operate = (operate.value if isinstance(operate, NewFriendRequestResponseOperate) else operate)
+            return assertOperatorSuccess(await fetch.http_post(f"{self.baseurl}/resp/newFriendRequestEvent", {
+                "sessionKey": self.session_key,
+                "eventId": request.requestId,
+                "fromId": request.supplicant,
+                "groupId": request.sourceGroup,
+                "operate": operate,
+                "message": message
+            }), raise_exception=True)
+        elif isinstance(request, eem.MemberJoinRequestEvent):
+            if not isinstance(operate, (MemberJoinRequestResponseOperate, int)):
+                raise TypeError(f"unknown operate: {operate}")
+            operate = (operate.value if isinstance(operate, MemberJoinRequestResponseOperate) else operate)
+            return assertOperatorSuccess(await fetch.http_post(f"{self.baseurl}/resp/memberJoinRequestEvent", {
+                "sessionKey": self.session_key,
+                "eventId": request.requestId,
+                "fromId": request.supplicant,
+                "groupId": request.sourceGroup,
+                "operate": operate,
+                "message": message
+            }), raise_exception=True)
+        else:
+            raise TypeError(f"unknown request: {request}")
 
     async def handleMessageAsGroup(
         self,

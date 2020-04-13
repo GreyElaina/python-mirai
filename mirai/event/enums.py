@@ -33,5 +33,20 @@ class ExternalEventTypes(Enum):
     MemberMuteEvent = "MemberMuteEvent"
     MemberUnmuteEvent = "MemberUnmuteEvent"
 
+    NewFriendRequestEvent = "NewFriendRequestEvent"
+    MemberJoinRequestEvent = "MemberJoinRequestEvent"
+
     # python-mirai 自己提供的事件
     UnexceptedException = "UnexceptedException"
+
+class NewFriendRequestResponseOperate(Enum):
+    accept = 0
+    refuse = 1
+    refuse_and_blacklist = 2
+
+class MemberJoinRequestResponseOperate(Enum):
+    accept = 0
+    refuse = 1
+    ignore = 2
+    refuse_and_blacklist = 3
+    ignore_and_blacklist = 4

@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from mirai.event import ExternalEvent
 from mirai.event.enums import ExternalEventTypes as EventType
 from mirai.entities.group import Permission, Group, Member
@@ -144,3 +144,18 @@ class MemberUnmuteEvent(ExternalEvent):
     type: EventType = EventType.MemberUnmuteEvent
     member: Member
     operator: T.Optional[Member]
+
+class NewFriendRequestEvent(ExternalEvent):
+    type: EventType = EventType.NewFriendRequestEvent
+    requestId: int = Field(..., alias="eventId")
+    supplicant: int = Field(..., alias="fromId") # 即请求方 QQ
+    sourceGroup: T.Optional[int] = Field(..., alias="groupId")
+    nickname: str = Field(..., alias="nick")
+
+class MemberJoinRequestEvent(ExternalEvent):
+    type: EventType = EventType.MemberJoinRequestEvent
+    requestId: int = Field(..., alias="eventId")
+    supplicant: int = Field(..., alias="fromId") # 即请求方 QQ
+    groupId: T.Optional[int] = Field(..., alias="groupId")
+    groupName: str = Field(..., alias="groupName")
+    nickname: str = Field(..., alias="nick")
