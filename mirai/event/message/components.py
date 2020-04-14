@@ -21,7 +21,8 @@ __all__ = [
     "Face",
     "Image",
     "Unknown",
-    "Quote"
+    "Quote",
+    "FlashImage"
 ]
 
 class Plain(BaseMessageComponent):
