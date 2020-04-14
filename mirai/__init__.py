@@ -17,7 +17,8 @@ from mirai.event.message.components import (
     Json as JsonMessage,
     Xml as XmlMessage,
     App as LightApp,
-    Image
+    Image,
+    FlashImage
 )
 from mirai.event.message.chain import (
     MessageChain

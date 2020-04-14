@@ -497,7 +497,12 @@ class MiraiProtocol:
                     })
                 elif isinstance(i, components.Image):
                     result.append({
-                        "type": "Image" if not i.flash else "FlashImage",
+                        "type": "Image",
+                        "imageId": i.asGroupImage()
+                    })
+                elif isinstance(i, components.FlashImage):
+                    result.append({
+                        "type": "FlashImage",
                         "imageId": i.asGroupImage()
                     })
                 else:
