@@ -2,6 +2,7 @@
 
 **本仓库仅作为学习用途**  
 **该项目已有更优秀的替代, 详见 [Graia Project](https://github.com/GraiaProject/Application)**
+**本项目目前不接受任何形式的贡献(包括但不限于 Issue, Pull Request 等方式), 且不保证你所提出的有关本项目的问题能够被解决, 至少我不会回答你的问题, 但你可以通过 fork 的形式进行二次开发, 这玩意够简单了, 相对于 Graia Project.**
 
 ### 这是什么?
 以 OICQ(QQ) 协议驱动的高性能机器人开发框架 [Mirai](https://github.com/mamoe/mirai) 的 Python 接口, 通过其提供的 `HTTP API` 与无头客户端(`Mirai`)交互.
