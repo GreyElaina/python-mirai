@@ -1,5 +1,8 @@
 ## Mirai Framework for Python
 
+**本仓库仅作为学习用途**  
+**该项目已有更优秀的替代, 详见 [Graia Project](https://github.com/GraiaProject/Application)**
+
 ### 这是什么?
 以 OICQ(QQ) 协议驱动的高性能机器人开发框架 [Mirai](https://github.com/mamoe/mirai) 的 Python 接口, 通过其提供的 `HTTP API` 与无头客户端(`Mirai`)交互.
 
