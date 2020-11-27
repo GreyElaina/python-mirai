@@ -19,6 +19,9 @@ pip install kuriyama
 
 现有的文档地址: https://mirai-py.originpages.com/
 
+> 考虑到部分原因, 我们已经重新开放了 python-mirai 的文档: https://natriumlab.github.io/
+> 文档仓库地址: https://github.com/NatriumLab/natriumlab.github.io
+
 ### 加入开发
 `python-mirai` 项目欢迎一切形式上的贡献(包括但不限于 `Issues`, `Pull Requests`, `Good Idea` 等)  
 我们希望能有更多优秀的开发者加入到对项目的贡献上来  
