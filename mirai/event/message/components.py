@@ -89,7 +89,7 @@ class AtAll(BaseMessageComponent):
         super().__init__()
 
     def toString(self):
-        return f"[AtAll]"
+        return "[AtAll]"
 
 class Face(BaseMessageComponent):
     type: MessageComponentTypes = "Face"

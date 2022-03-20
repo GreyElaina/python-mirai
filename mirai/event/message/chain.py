@@ -41,11 +41,7 @@ class MessageChain(BaseModel):
         return self.__root__[index]
 
     def hasComponent(self, component_class) -> bool:
-        for i in self:
-            if type(i) == component_class:
-                return True
-        else:
-            return False
+        return any(type(i) == component_class for i in self)
 
     def __len__(self) -> int:
         return len(self.__root__)

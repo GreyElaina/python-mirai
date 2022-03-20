@@ -282,13 +282,12 @@ class MiraiProtocol:
             "id": sourceId
         }), raise_exception=True, return_as_is=True)
 
-        if result['type'] in MessageTypes:
-            if "messageChain" in result:
-                result['messageChain'] = MessageChain.custom_parse(result['messageChain'])
+        if result['type'] not in MessageTypes:
+            raise TypeError("unknown message, not found type.")
+        if "messageChain" in result:
+            result['messageChain'] = MessageChain.custom_parse(result['messageChain'])
 
-            return MessageTypes[result['type']].parse_obj(result)
-        else:
-            raise TypeError(f"unknown message, not found type.")
+        return MessageTypes[result['type']].parse_obj(result)
 
     @throw_error_if_not_enable
     @protocol_log
@@ -491,10 +490,15 @@ class MiraiProtocol:
             result = []
             for i in message:
                 if isinstance(i, InternalImage):
-                    result.append({
-                        "type": "Image" if not i.flash else "FlashImage",
-                        "imageId": (await self.handleInternalImageAsGroup(i)).asGroupImage()
-                    })
+                    result.append(
+                        {
+                            "type": "FlashImage" if i.flash else "Image",
+                            "imageId": (
+                                await self.handleInternalImageAsGroup(i)
+                            ).asGroupImage(),
+                        }
+                    )
+
                 elif isinstance(i, components.Image):
                     result.append({
                         "type": "Image",
@@ -529,15 +533,23 @@ class MiraiProtocol:
             result = []
             for i in message:
                 if isinstance(i, InternalImage):
-                    result.append({
-                        "type": "Image" if not i.flash else "FlashImage",
-                        "imageId": (await self.handleInternalImageAsFriend(i)).asFriendImage()
-                    })
+                    result.append(
+                        {
+                            "type": "FlashImage" if i.flash else "Image",
+                            "imageId": (
+                                await self.handleInternalImageAsFriend(i)
+                            ).asFriendImage(),
+                        }
+                    )
+
                 elif isinstance(i, components.Image):
-                    result.append({
-                        "type": "Image" if not i.flash else "FlashImage",
-                        "imageId": i.asFriendImage()
-                    })
+                    result.append(
+                        {
+                            "type": "FlashImage" if i.flash else "Image",
+                            "imageId": i.asFriendImage(),
+                        }
+                    )
+
                 else:
                     result.append(json.loads(i.json()))
             return result
@@ -562,15 +574,23 @@ class MiraiProtocol:
             result = []
             for i in message:
                 if isinstance(i, InternalImage):
-                    result.append({
-                        "type": "Image" if not i.flash else "FlashImage",
-                        "imageId": (await self.handleInternalImageForTempMessage(i)).asFriendImage()
-                    })
+                    result.append(
+                        {
+                            "type": "FlashImage" if i.flash else "Image",
+                            "imageId": (
+                                await self.handleInternalImageForTempMessage(i)
+                            ).asFriendImage(),
+                        }
+                    )
+
                 elif isinstance(i, components.Image):
-                    result.append({
-                        "type": "Image" if not i.flash else "FlashImage",
-                        "imageId": i.asFriendImage()
-                    })
+                    result.append(
+                        {
+                            "type": "FlashImage" if i.flash else "Image",
+                            "imageId": i.asFriendImage(),
+                        }
+                    )
+
                 else:
                     result.append(json.loads(i.json()))
             return result

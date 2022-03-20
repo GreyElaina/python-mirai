@@ -143,7 +143,7 @@ def secure_filename(filename):
     os.name == "nt" and filename and \
     filename.split(".")[0].upper() in _windows_device_files
   ):
-    filename = "_" + filename
+    filename = f"_{filename}"
 
   return filename
 
@@ -167,7 +167,8 @@ def edge_case_handler(func):
         Protocol.error("a unexpected session error, we will deal with it.")
         await self.enable_session()
       except aiohttp.client_exceptions.ClientError:
-        Protocol.error(f"cannot connect to the headless client, will retry after 5 seconds.")
+        Protocol.error(
+            "cannot connect to the headless client, will retry after 5 seconds.")
         await asyncio.sleep(5)
         continue
       except exceptions.CallDevelopers:
@@ -175,8 +176,7 @@ def edge_case_handler(func):
         exit(-1)
       except:
         raise
-    else:
-      Protocol.error("we retried many times, but it doesn't send a success message to us...")
+    Protocol.error("we retried many times, but it doesn't send a success message to us...")
   wrapper.__name__ = func.__name__
   return wrapper
 

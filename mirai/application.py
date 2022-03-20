@@ -70,37 +70,28 @@ class Mirai(MiraiProtocol):
     self.useWebsocket = websocket
 
     if url:
-      urlinfo = parse.urlparse(url)
-      if urlinfo:
-        query_info = parse.parse_qs(urlinfo.query)
-        if all([
+      if not (urlinfo := parse.urlparse(url)):
+        raise ValueError("invaild url")
+      query_info = parse.parse_qs(urlinfo.query)
+      if not all([
           urlinfo.scheme == "mirai",
           urlinfo.path in ["/", "/ws"],
-
           "authKey" in query_info and query_info["authKey"],
-          "qq" in query_info and query_info["qq"]
-        ]):
-          if urlinfo.path == "/ws":
-            self.useWebsocket = True
-          else:
-            self.useWebsocket = websocket
+          "qq" in query_info and query_info["qq"],
+      ]):
+        raise ValueError("invaild url: wrong format")
+      self.useWebsocket = True if urlinfo.path == "/ws" else websocket
+      authKey = query_info["authKey"][0]
 
-          authKey = query_info["authKey"][0]
-
-          self.baseurl = f"http://{urlinfo.netloc}"
-          self.auth_key = authKey
-          self.qq =  int(query_info["qq"][0])
-        else:
-          raise ValueError("invaild url: wrong format")
-      else:
-        raise ValueError("invaild url")
+      self.baseurl = f"http://{urlinfo.netloc}"
+      self.auth_key = authKey
+      self.qq =  int(query_info["qq"][0])
+    elif all([host, port, authKey, qq]):
+      self.baseurl = f"http://{host}:{port}"
+      self.auth_key = authKey
+      self.qq = int(qq)
     else:
-      if all([host, port, authKey, qq]):
-        self.baseurl = f"http://{host}:{port}"
-        self.auth_key = authKey
-        self.qq = int(qq)
-      else:
-        raise ValueError("invaild arguments")
+      raise ValueError("invaild arguments")
 
   async def enable_session(self):
     auth_response = await self.auth()
@@ -108,17 +99,13 @@ class Mirai(MiraiProtocol):
       "code" in auth_response and auth_response['code'] == 0,
       "session" in auth_response and auth_response['session']
     ]):
-      if "msg" in auth_response and auth_response['msg']:
-        self.session_key = auth_response['msg']
-      else:
-        self.session_key = auth_response['session']
-
+      self.session_key = (auth_response['msg'] if "msg" in auth_response
+                          and auth_response['msg'] else auth_response['session'])
       await self.verify()
+    elif "code" in auth_response and auth_response['code'] == 1:
+      raise ValueError("invaild authKey")
     else:
-      if "code" in auth_response and auth_response['code'] == 1:
-        raise ValueError("invaild authKey")
-      else:
-        raise ValueError('invaild args: unknown response')
+      raise ValueError('invaild args: unknown response')
 
     self.enabled = True
     return self
@@ -331,14 +318,12 @@ class Mirai(MiraiProtocol):
 
       if depend_func in lru_cache_sets and depend.cache:
         depend_func = lru_cache_sets[depend_func]
-      else:
-        if depend.cache:
-          original = depend_func
-          if inspect.iscoroutinefunction(depend_func):
-            depend_func = alru_cache(depend_func)
-          else:
-            depend_func = lru_cache(depend_func)
-          lru_cache_sets[original] = depend_func
+      elif depend.cache:
+        original = depend_func
+        depend_func = (alru_cache(depend_func)
+                       if inspect.iscoroutinefunction(depend_func) else
+                       lru_cache(depend_func))
+        lru_cache_sets[original] = depend_func
 
       result = await self.executor_with_middlewares(
         depend_func, depend.middlewares, event_context, lru_cache_sets
@@ -351,39 +336,32 @@ class Mirai(MiraiProtocol):
     CallParams = {}
     for name, annotation, default in ParamSignatures:
       if default:
-        if isinstance(default, Depend):
-          if not inspect.isclass(default.func):
-            depend_func = default.func
-          elif hasattr(default.func, "__call__"):
-            depend_func = default.func.__call__
-          else:
-            raise TypeError("must be callable.")
-          
-          if depend_func in lru_cache_sets and default.cache:
-            depend_func = lru_cache_sets[depend_func]
-          else:
-            if default.cache:
-              original = depend_func
-              if inspect.iscoroutinefunction(depend_func):
-                depend_func = alru_cache(depend_func)
-              else:
-                depend_func = lru_cache(depend_func)
-              lru_cache_sets[original] = depend_func
-
-          CallParams[name] = await self.executor_with_middlewares(
-            depend_func, default.middlewares, event_context, lru_cache_sets
-          )
-          continue
-        else:
+        if not isinstance(default, Depend):
           raise RuntimeError("checked a unexpected default value.")
-      else:
-        if annotation in PlaceAnnotation:
-          CallParams[name] = PlaceAnnotation[annotation](event_context)
-          continue
+        if not inspect.isclass(default.func):
+          depend_func = default.func
+        elif hasattr(default.func, "__call__"):
+          depend_func = default.func.__call__
         else:
-          if name not in extra_parameter:
-            raise RuntimeError(f"checked a unexpected annotation: {annotation}")
-    
+          raise TypeError("must be callable.")
+
+        if depend_func in lru_cache_sets and default.cache:
+          depend_func = lru_cache_sets[depend_func]
+        elif default.cache:
+          original = depend_func
+          depend_func = (alru_cache(depend_func)
+                         if inspect.iscoroutinefunction(depend_func) else
+                         lru_cache(depend_func))
+          lru_cache_sets[original] = depend_func
+
+        CallParams[name] = await self.executor_with_middlewares(
+          depend_func, default.middlewares, event_context, lru_cache_sets
+        )
+      elif annotation in PlaceAnnotation:
+        CallParams[name] = PlaceAnnotation[annotation](event_context)
+      elif name not in extra_parameter:
+        raise RuntimeError(f"checked a unexpected annotation: {annotation}")
+
     try:
       async with AsyncExitStack() as stack:
         sorted_middlewares = self.sort_middlewares(executor_protocol.middlewares)
@@ -436,11 +414,10 @@ class Mirai(MiraiProtocol):
       self.checkFuncAnnotations(func)
 
   def getFuncRegisteredEvents(self, callable_target: Callable):
-    result = []
-    for event_name in self.event:
-      if callable_target in [i.callable for i in self.event[event_name]]:
-        result.append(event_name)
-    return result
+    return [
+        event_name for event_name in self.event
+        if callable_target in [i.callable for i in self.event[event_name]]
+    ]
 
   def checkFuncAnnotations(self, callable_target: Callable):
     restraint_mapping = self.getRestraintMapping()
@@ -640,16 +617,7 @@ class Mirai(MiraiProtocol):
         SessionLogger.info("event receive method: http polling")
 
       result = loop.run_until_complete(self.checkWebsocket())
-      if not result: # we can use http, not ws.
-        # should use http, but we can change it.
-        if self.useWebsocket:
-          SessionLogger.warning("catched wrong config: enableWebsocket=false, we will modify it.")
-          loop.run_until_complete(self.setConfig(enableWebsocket=True))
-          loop.create_task(self.ws_event())
-          loop.create_task(self.ws_message())
-        else:
-          loop.create_task(self.message_polling())
-      else: # we can use websocket, it's fine
+      if result: # we can use websocket, it's fine
         if self.useWebsocket:
           loop.create_task(self.ws_event())
           loop.create_task(self.ws_message())
@@ -657,8 +625,15 @@ class Mirai(MiraiProtocol):
           SessionLogger.warning("catched wrong config: enableWebsocket=true, we will modify it.")
           loop.run_until_complete(self.setConfig(enableWebsocket=False))
           loop.create_task(self.message_polling())
+      elif self.useWebsocket:
+        SessionLogger.warning("catched wrong config: enableWebsocket=false, we will modify it.")
+        loop.run_until_complete(self.setConfig(enableWebsocket=True))
+        loop.create_task(self.ws_event())
+        loop.create_task(self.ws_message())
+      else:
+        loop.create_task(self.message_polling())
       loop.create_task(self.event_runner())
-    
+
     if not no_forever:
       for i in self.subroutines:
         loop.create_task(i(self))

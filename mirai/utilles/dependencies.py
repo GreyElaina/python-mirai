@@ -33,12 +33,11 @@ def AssertAt(qq=None):
     async def at_wrapper(app: Mirai, message: MessageChain):
         at_set: List[At] = message.getAllofComponent(At)
         qq = qq or app.qq
-        if at_set:
-            for at in at_set:
-                if at.target == qq:
-                    return
-        else:
+        if not at_set:
             raise Cancelled
+        for at in at_set:
+            if at.target == qq:
+                return
     return Depend(at_wrapper)
 
 def GroupsRestraint(*groups: List[Union[Group, int]]):
